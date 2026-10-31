@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Investigate alert{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'security:center' %}">Security Center</a> / Alert</p>
+<div class="page-head">
+  <div>
+    <h1>{{ alert.title }}</h1>
+    <p class="page-sub">First seen {{ alert.first_seen|date:"d M Y, h:i A" }}, last seen {{ alert.last_seen|date:"d M Y, h:i A" }}{% if alert.occurrences > 1 %}, {{ alert.occurrences }} occurrences{% endif %}.</p>
+  </div>
+    <div class="head-actions">
+    <span class="sev sev--{{ alert.severity|lower }} risk--lg">{{ alert.get_severity_display }}</span>
+    {% if 'manage_incidents' in sv_privileges %}<a class="btn btn-primary" href="{% url 'incidents:create' %}?alert={{ alert.public_id }}">Open incident</a>{% endif %}
+  </div>
+</div>
+  <div class="head-actions">
+    <span class="sev sev--{{ alert.severity|lower }} risk--lg">{{ alert.get_severity_display }}</span>
+    {% if 'manage_incidents' in sv_privileges %}<a class="btn btn-primary" href="{% url 'incidents:create' %}?alert={{ alert.public_id }}">Open incident</a>{% endif %}
+  </div>
+</div>
+{% if alert.incidents.exists %}<p class="linked-note">Linked to {% for i in alert.incidents.all %}<a href="{% url 'incidents:detail' i.public_id %}">{{ i.reference }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.</p>{% endif %}
+</div>
+
+<section class="panel verdicts">
+  <div class="verdict-cell"><span class="metric-label">Status</span><strong>{{ alert.get_status_display }}</strong>{% if alert.handled_by %}<span class="muted small">by {{ alert.handled_by.full_name }}, {{ alert.handled_at|date:"d M, H:i" }}</span>{% endif %}</div>
+  <div class="verdict-cell"><span class="metric-label">Account</span>{% if alert.user %}<strong>{{ alert.user.full_name }}</strong><span class="muted small">{{ alert.user.email }} &middot; {{ alert.user.get_role_display }}</span>{% else %}<span class="muted">{{ alert.target|default:"-" }}</span>{% endif %}</div>
+  <div class="verdict-cell"><span class="metric-label">Device</span><span>{{ alert.device|default:"-" }}</span>{% if alert.ip_address %}<span class="mono muted small">{{ alert.ip_address }}</span>{% endif %}</div>
+  <div class="verdict-cell"><span class="metric-label">Target</span><span class="small">{{ alert.target|default:"-" }}</span></div>
+</section>
+
+<section class="panel">
+  <p class="report-summary">{{ alert.description }}</p>
+  {% if alert.note %}<p class="field-help">Note: {{ alert.note }}</p>{% endif %}
+  <form method="post" action="{% url 'security:alert_update' alert.public_id %}" class="alert-actions">
+    {% csrf_token %}
+    <input class="sv-input" type="text" name="note" maxlength="500" placeholder="Add a note (optional)" aria-label="Note">
+    {% if alert.status == 'OPEN' %}<button type="submit" name="action" value="acknowledge" class="btn btn-ghost">Acknowledge</button>{% endif %}
+    {% if alert.status != 'RESOLVED' %}<button type="submit" name="action" value="resolve" class="btn btn-primary">Mark resolved</button>{% else %}<button type="submit" name="action" value="reopen" class="btn btn-ghost">Reopen</button>{% endif %}
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><div><h2><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>Related activity</h2><p class="panel-sub">Audit events around this alert (two hours either side).</p></div></div>
+  {% if related %}
+  <ol class="timeline">
+    {% for e in related %}
+    <li class="timeline-item timeline-item--{{ e.result|lower }}">
+      <time datetime="{{ e.timestamp|date:'c' }}">{{ e.timestamp|date:"d M" }}<br><strong>{{ e.timestamp|date:"h:i A" }}</strong></time>
+      <div class="timeline-body">
+        <p class="timeline-title">{{ e.get_action_display }} <span class="muted">by {{ e.actor_label|default:"unknown" }}</span></p>
+        <p class="timeline-meta">{% if e.target %}{{ e.target }} {% endif %}{% if e.ip_address %}<span class="mono">{{ e.ip_address }}</span>{% endif %}{% if e.result != 'SUCCESS' %} <span class="status status--{{ e.result|lower }}">{{ e.get_result_display }}</span>{% endif %}</p>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}<p class="empty">No related events.</p>{% endif %}
+</section>
+
+{% if devices %}
+<section class="panel">
+  <div class="panel-head"><div><h2><svg class="i" aria-hidden="true"><use href="#i-monitor"/></svg>Devices of {{ alert.user.full_name }}</h2></div></div>
+  <ul class="plain-list">
+    {% for d in devices %}<li><strong>{{ d.name }}</strong> <span class="muted small">{{ d.get_kind_display }}, {{ d.get_status_display }}</span><br><span class="muted small">First {{ d.first_registered|date:"d M Y, H:i" }}, last active {{ d.last_active|timesince }} ago{% if d.last_ip %} &middot; <span class="mono">{{ d.last_ip }}</span>{% endif %}</span></li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

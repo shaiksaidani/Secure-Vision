@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Stored Data{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Stored Data</h1>
+    <p class="page-sub">Protected files you are authorized to open. Every view and download is recorded.</p>
+  </div>
+</div>
+
+<nav class="chip-tabs" aria-label="File categories">
+  {% for tab in tabs %}
+  <a class="chip{% if tab.active %} is-active{% endif %}" href="?category={{ tab.value }}{% if query %}&amp;q={{ query|urlencode }}{% endif %}"{% if tab.active %} aria-current="page"{% endif %}>{{ tab.label }} <span>{{ tab.count }}</span></a>
+  {% endfor %}
+</nav>
+
+<section class="panel">
+  <form method="get" class="search-row" role="search">
+    <input type="hidden" name="category" value="{{ category }}">
+    <input class="sv-input" type="search" name="q" value="{{ query }}" placeholder="Search by file name" aria-label="Search files">
+    <button type="submit" class="btn btn-ghost">Search</button>
+  </form>
+
+  {% if files %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>File</th><th>Type</th><th>Size</th><th>Uploaded</th><th>Expires</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for f in files %}
+        <tr>
+          <td data-label="File"><a class="file-link" href="{% url 'vault:viewer' f.public_id %}"><svg class="i" aria-hidden="true"><use href="#i-{{ f.icon }}"/></svg>{{ f.title }}</a></td>
+          <td data-label="Type">{{ f.get_category_display }}</td>
+          <td data-label="Size">{{ f.size_label }}</td>
+          <td data-label="Uploaded">{{ f.uploaded_at|date:"d M Y" }}</td>
+          <td data-label="Expires">{% if f.expires_at %}{{ f.expires_at|date:"d M Y, H:i" }}{% else %}<span class="muted">Never</span>{% endif %}</td>
+          <td data-label="Status">{% if f.status == 'EXPIRED' %}<span class="status status--denied">Expired</span>{% elif f.expires_soon %}<span class="status status--warn">Expiring soon</span>{% else %}<span class="status status--success">Available</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">{% if query or category %}No files match this filter.{% else %}No files have been shared with you yet.{% endif %}</p>
+  {% endif %}
+</section>
+{% if my_requests %}
+<section class="panel">
+  <div class="panel-head"><div><h2><svg class="i" aria-hidden="true"><use href="#i-key"/></svg>Your access requests</h2></div></div>
+  <ul class="plain-list">
+    {% for r in my_requests %}
+    <li><strong>{{ r.file.title }}</strong> <span class="status status--{% if r.status == 'APPROVED' %}success{% elif r.status == 'REJECTED' %}denied{% else %}info{% endif %}">{{ r.get_status_display }}</span><br><span class="muted small">Requested {{ r.created_at|date:"d M Y, H:i" }}{% if r.decision_note %} &middot; {{ r.decision_note }}{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

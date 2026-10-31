@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Activity Logs{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Activity Logs</h1>
+    <p class="page-sub">{% if org_view %}Every recorded event across SecureVision. Entries can't be edited or deleted.{% else %}Everything recorded about your own account.{% endif %}</p>
+  </div>
+  {% if org_view %}<a class="btn btn-ghost" href="?{{ querystring }}{% if querystring %}&amp;{% endif %}export=csv"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Export CSV</a>{% endif %}
+</div>
+
+<section class="panel">
+  <form method="get" class="filters filters--5" role="search">
+    {% if org_view %}
+    <div class="field">
+      <label class="field-label" for="act-q">Search</label>
+      <input class="sv-input" type="search" id="act-q" name="q" value="{{ query }}" placeholder="Person, target or IP">
+    </div>
+    {% endif %}
+    <div class="field">
+      <label class="field-label" for="act-action">Action</label>
+      <select class="sv-input" id="act-action" name="action">
+        <option value="">All actions</option>
+        {% for value, label in actions %}<option value="{{ value }}"{% if action == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label" for="act-result">Result</label>
+      <select class="sv-input" id="act-result" name="result">
+        <option value="">All</option>
+        {% for value, label in results %}<option value="{{ value }}"{% if result == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label" for="act-from">From</label>
+      <input class="sv-input" type="date" id="act-from" name="from" value="{{ date_from|date:'Y-m-d' }}">
+    </div>
+    <div class="field">
+      <label class="field-label" for="act-to">To</label>
+      <input class="sv-input" type="date" id="act-to" name="to" value="{{ date_to|date:'Y-m-d' }}">
+    </div>
+    <div class="filters-actions">
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a class="btn btn-ghost" href="{% url 'audit:activity' %}">Clear</a>
+    </div>
+  </form>
+
+  {% if page.object_list %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Time</th>{% if org_view %}<th>Account</th>{% endif %}<th>Action</th><th>Target</th><th>Result</th><th>IP</th></tr></thead>
+      <tbody>
+      {% for e in page.object_list %}
+        <tr>
+          <td data-label="Time">{{ e.timestamp|date:"d M Y" }}<br><span class="muted small">{{ e.timestamp|date:"h:i:s A" }}</span></td>
+          {% if org_view %}<td data-label="Account">{% if e.user %}<strong>{{ e.user.full_name }}</strong><br>{% endif %}<span class="muted small">{{ e.actor_label|default:"-" }}</span></td>{% endif %}
+          <td data-label="Action">{{ e.get_action_display }}</td>
+          <td data-label="Target" class="small">{{ e.target|default:"-" }}</td>
+          <td data-label="Result"><span class="status status--{{ e.result|lower }}">{{ e.get_result_display }}</span></td>
+          <td data-label="IP" class="mono">{{ e.ip_address|default:"-" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <nav class="pager" aria-label="Pages">
+    {% if page.has_previous %}<a class="btn btn-sm btn-ghost" href="?{{ querystring }}{% if querystring %}&amp;{% endif %}page={{ page.previous_page_number }}">Newer</a>{% endif %}
+    <span class="muted small">Page {{ page.number }} of {{ page.paginator.num_pages }} &middot; {{ page.paginator.count }} event{{ page.paginator.count|pluralize }}</span>
+    {% if page.has_next %}<a class="btn btn-sm btn-ghost" href="?{{ querystring }}{% if querystring %}&amp;{% endif %}page={{ page.next_page_number }}">Older</a>{% endif %}
+  </nav>
+  {% else %}
+  <p class="empty">No events match these filters.</p>
+  {% endif %}
+</section>
+{% endblock %}

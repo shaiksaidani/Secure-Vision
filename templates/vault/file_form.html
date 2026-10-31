@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Access settings{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'vault:hub' %}">DRM Hub</a> / {{ title_before }}</p>
+<div class="page-head">
+  <div>
+    <h1>Access settings</h1>
+    <p class="page-sub">{{ title_before }}: {{ file.get_category_display }}, {{ file.size_label }}. Changes apply immediately and are recorded.</p>
+  </div>
+  <a class="btn btn-ghost" href="{% url 'vault:viewer' file.public_id %}">Open file</a>
+</div>
+{% if file.status == 'EXPIRED' %}
+<div class="flash flash--warning">This file has expired. Set a new future expiry date (or clear it) to make it available again.</div>
+{% endif %}
+<section class="panel panel-narrow panel-wide">
+  <form method="post" novalidate class="form-stack">
+    {% csrf_token %}
+    {% include 'partials/form_errors.html' %}
+    {% include 'partials/field.html' with field=form.title %}
+    {% include 'partials/field.html' with field=form.description %}
+    {% include 'vault/_grant_fields.html' %}
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="{% url 'vault:hub' %}">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save access settings</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

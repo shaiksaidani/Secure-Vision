@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Attendance{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Attendance</h1>
+    <p class="page-sub">{{ today|date:"l, d F Y" }}. Check-ins after {{ late_after|date:"h:i A" }} are marked Late.</p>
+  </div>
+</div>
+{% include 'attendance/_tabs.html' %}
+
+<section class="panel today-card">
+  <div class="today-status">
+    <span class="metric-label">Today</span>
+    <span class="att-badge att-badge--{{ status_code|lower }}">{{ status_label }}</span>
+  </div>
+  <dl class="today-times">
+    <div><dt>Check in</dt><dd>{% if record.check_in_at %}{{ record.check_in_at|date:"h:i A" }}{% else %}<span class="muted">--:--</span>{% endif %}</dd></div>
+    <div><dt>Check out</dt><dd>{% if record.check_out_at %}{{ record.check_out_at|date:"h:i A" }}{% else %}<span class="muted">--:--</span>{% endif %}</dd></div>
+    <div><dt>Working duration</dt><dd{% if record.check_in_at and not record.check_out_at %} data-since="{{ record.check_in_at|date:'c' }}"{% endif %}>{% if record.check_in_at %}{{ record.worked_label }}{% else %}<span class="muted">0h 00m</span>{% endif %}</dd></div>
+  </dl>
+  <div class="today-actions">
+    <form method="post" action="{% url 'attendance:check_in' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary btn-lg"{% if not can_check_in %} disabled{% endif %}>Check in</button>
+    </form>
+    <form method="post" action="{% url 'attendance:check_out' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-ghost btn-lg"{% if not can_check_out %} disabled{% endif %}>Check out</button>
+    </form>
+  </div>
+  {% if record.status == 'LEAVE' %}<p class="field-help">Today is recorded as leave{% if record.note %}: {{ record.note }}{% endif %}.</p>{% endif %}
+</section>
+
+<section class="panel metrics metrics--5" aria-label="This month">
+  <div class="metric"><span class="metric-label">Present this month</span><span class="metric-value">{{ month.present }}</span></div>
+  <div class="metric"><span class="metric-label">Late</span><span class="metric-value">{{ month.late }}</span></div>
+  <div class="metric{% if month.absent %} metric--alert{% endif %}"><span class="metric-label">Absent</span><span class="metric-value">{{ month.absent }}</span></div>
+  <div class="metric"><span class="metric-label">Leave</span><span class="metric-value">{{ month.leave }}</span></div>
+  <div class="metric"><span class="metric-label">Hours worked</span><span class="metric-value metric-value--text">{{ month.worked|default:"0h 00m" }}</span></div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>Last 30 days</h2>
+      <p class="panel-sub">Your own attendance history.</p>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Date</th><th>Status</th><th>Check in</th><th>Check out</th><th>Worked</th><th>Device</th></tr></thead>
+      <tbody>
+      {% for row in history %}
+        <tr>
+          <td data-label="Date">{{ row.date|date:"D, d M" }}</td>
+          <td data-label="Status"><span class="att-badge att-badge--{{ row.code|lower }}">{{ row.label }}</span></td>
+          <td data-label="Check in">{% if row.record.check_in_at %}{{ row.record.check_in_at|date:"h:i A" }}{% else %}<span class="muted">-</span>{% endif %}</td>
+          <td data-label="Check out">{% if row.record.check_out_at %}{{ row.record.check_out_at|date:"h:i A" }}{% elif row.record.check_in_at and row.date != today %}<span class="muted">Not recorded</span>{% else %}<span class="muted">-</span>{% endif %}</td>
+          <td data-label="Worked">{{ row.record.worked_label|default:"-" }}</td>
+          <td data-label="Device" class="muted small">{{ row.record.check_in_device|default:"-" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

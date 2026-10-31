@@ -1,0 +1,35 @@
+{% extends 'base_auth.html' %}
+{% block title %}Create account{% endblock %}
+{% block content %}
+<h1 class="auth-title">Create your account</h1>
+<p class="auth-sub">Choose your role. Team Leader and Admin need an authorization code from your organization.</p>
+
+<form method="post" novalidate class="form-stack">
+  {% csrf_token %}
+  {% include 'partials/form_errors.html' %}
+  {% include 'partials/field.html' with field=form.full_name %}
+  {% include 'partials/field.html' with field=form.username %}
+  {% include 'partials/field.html' with field=form.email %}
+
+  <div class="field{% if form.role.errors %} has-error{% endif %}">
+    <label class="field-label" for="{{ form.role.id_for_label }}">{{ form.role.label }}</label>
+    {{ form.role }}
+    {% for value, label, description in form.role_descriptions %}
+    <p class="role-help" data-role-help="{{ value }}"{% if form.role.value != value %} hidden{% endif %}>
+      <strong>{{ label }}:</strong> {{ description }}
+    </p>
+    {% endfor %}
+    {% for error in form.role.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+  </div>
+
+  <div data-role-code-wrap{% if form.role.value == 'EMPLOYEE' or not form.role.value %} hidden{% endif %}>
+    {% include 'partials/field.html' with field=form.role_code password=True %}
+  </div>
+
+  {% include 'partials/field.html' with field=form.password1 password=True rules=True %}
+  {% include 'partials/field.html' with field=form.password2 password=True match=form.password1.id_for_label %}
+  <button type="submit" class="btn btn-primary btn-block">Create account</button>
+</form>
+
+<p class="auth-switch">Already have an account? <a href="{% url 'accounts:login' %}">Sign in</a></p>
+{% endblock %}

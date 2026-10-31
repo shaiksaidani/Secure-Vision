@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}User Management{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>User Management</h1>
+    <p class="page-sub">Every registered account. Role changes take effect on the user's next click.</p>
+  </div>
+</div>
+
+<section class="panel metrics metrics--5" aria-label="User totals">
+  <div class="metric"><span class="metric-label">Total users</span><span class="metric-value">{{ counts.total }}</span></div>
+  <div class="metric"><span class="metric-label">Active</span><span class="metric-value">{{ counts.active }}</span></div>
+  <div class="metric"><span class="metric-label">Admins</span><span class="metric-value">{{ counts.admins }}</span></div>
+  <div class="metric"><span class="metric-label">Team Leaders</span><span class="metric-value">{{ counts.leaders }}</span></div>
+  <div class="metric"><span class="metric-label">Employees</span><span class="metric-value">{{ counts.employees }}</span></div>
+</section>
+
+<section class="panel">
+  <form method="get" class="filters" role="search">
+    <div class="field">
+      <label class="field-label" for="q">Search</label>
+      <input class="sv-input" type="search" id="q" name="q" value="{{ query }}" placeholder="Name, email or username">
+    </div>
+    <div class="field">
+      <label class="field-label" for="role">Role</label>
+      <select class="sv-input" id="role" name="role">
+        <option value="">All roles</option>
+        {% for value, label in role_choices %}
+        <option value="{{ value }}"{% if role_filter == value %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label" for="status">Status</label>
+      <select class="sv-input" id="status" name="status">
+        <option value="">All</option>
+        <option value="active"{% if status_filter == 'active' %} selected{% endif %}>Active</option>
+        <option value="inactive"{% if status_filter == 'inactive' %} selected{% endif %}>Deactivated</option>
+      </select>
+    </div>
+    <div class="filters-actions">
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a class="btn btn-ghost" href="{% url 'accounts:user_list' %}">Clear</a>
+    </div>
+  </form>
+
+  {% if users %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>User</th><th>Username</th><th>Role</th><th>Status</th><th>Last sign-in</th><th><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+      {% for u in users %}
+        <tr>
+          <td data-label="User"><strong>{{ u.full_name }}</strong>{% if u.pk == user.pk %} <span class="tag tag-accent">You</span>{% endif %}<br><span class="muted small">{{ u.email }}</span></td>
+          <td data-label="Username">{{ u.username }}</td>
+          <td data-label="Role">
+            {% if u.pk == user.pk %}
+              <span class="role-tag role-tag--{{ u.role|lower }}">{{ u.get_role_display }}</span>
+            {% else %}
+            <form method="post" action="{% url 'accounts:user_set_role' u.pk %}" class="inline-form"
+                  data-confirm="Change {{ u.full_name }}'s role? Their privileges change immediately.">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ current_url }}">
+              <select class="sv-input sv-input--sm" name="role" aria-label="Role for {{ u.full_name }}">
+                {% for value, label in role_choices %}
+                <option value="{{ value }}"{% if u.role == value %} selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-sm btn-ghost">Save</button>
+            </form>
+            {% endif %}
+          </td>
+          <td data-label="Status">{% if u.is_active %}<span class="status status--success">Active</span>{% else %}<span class="status status--denied">Deactivated</span>{% endif %}</td>
+          <td data-label="Last sign-in">{% if u.last_login %}{{ u.last_login|date:"d M Y, H:i" }}{% else %}<span class="muted">Never</span>{% endif %}</td>
+          <td class="cell-actions">
+            {% if u.pk != user.pk %}
+            <form method="post" action="{% url 'accounts:user_set_status' u.pk %}"
+                  data-confirm="{% if u.is_active %}Deactivate {{ u.full_name }}? They will be signed out everywhere.{% else %}Reactivate {{ u.full_name }}?{% endif %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ current_url }}">
+              {% if u.is_active %}
+              <input type="hidden" name="action" value="deactivate">
+              <button type="submit" class="btn btn-sm btn-danger-ghost">Deactivate</button>
+              {% else %}
+              <input type="hidden" name="action" value="activate">
+              <button type="submit" class="btn btn-sm btn-ghost">Reactivate</button>
+              {% endif %}
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">No users match these filters.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-head"><div><h2>What each role can do</h2></div></div>
+  <dl class="role-guide">
+    {% for value, label, description in role_descriptions %}
+    <div><dt><span class="role-tag role-tag--{{ value|lower }}">{{ label }}</span></dt><dd>{{ description }}</dd></div>
+    {% endfor %}
+  </dl>
+</section>
+{% endblock %}

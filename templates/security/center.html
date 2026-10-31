@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Security Center{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Security Center</h1>
+    <p class="page-sub">Alerts are raised automatically from the audit log. Investigate, acknowledge and resolve them here.</p>
+  </div>
+  <a class="btn btn-ghost" href="{% url 'audit:activity' %}">Open Activity Logs</a>
+</div>
+
+<section class="panel metrics metrics--5" aria-label="Security overview">
+  <div class="metric{% if metrics.critical %} metric--alert{% endif %}"><span class="metric-label">Critical alerts</span><span class="metric-value">{{ metrics.critical }}</span><span class="metric-note">{{ metrics.high }} high</span></div>
+  <div class="metric"><span class="metric-label">Blocked attempts, 24h</span><span class="metric-value">{{ metrics.blocked_24h }}</span></div>
+  <div class="metric"><span class="metric-label">Failed sign-ins, 24h</span><span class="metric-value">{{ metrics.failed_signins_24h }}</span></div>
+  <div class="metric"><span class="metric-label">New devices, 7 days</span><span class="metric-value">{{ metrics.new_devices_7d }}</span></div>
+  <div class="metric"><span class="metric-label">Expired files</span><span class="metric-value">{{ metrics.expired_files }}</span></div>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><div><h2><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg>Open alerts</h2><p class="panel-sub">Most severe first.</p></div></div>
+  {% if open_alerts %}
+  <ul class="alert-list">
+    {% for a in open_alerts %}
+    <li class="alert-row alert-row--{{ a.severity|lower }}">
+      <div class="alert-main">
+        <span class="sev sev--{{ a.severity|lower }}">{{ a.get_severity_display }}</span>
+        <div>
+          <strong>{{ a.title }}</strong>{% if a.occurrences > 1 %} <span class="muted small">x{{ a.occurrences }}</span>{% endif %}
+          <p class="muted small">{{ a.description }}</p>
+          <p class="small">{% if a.user %}User: {{ a.user.full_name }} &middot; {% endif %}{{ a.last_seen|date:"d M, h:i A" }}{% if a.device %} &middot; {{ a.device }}{% endif %}{% if a.status == 'ACKNOWLEDGED' %} &middot; <span class="tag">Acknowledged</span>{% endif %}</p>
+        </div>
+      </div>
+      <a class="btn btn-sm btn-primary" href="{% url 'security:alert' a.public_id %}">Investigate</a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">No open alerts.</p>
+  {% endif %}
+</section>
+
+<div class="report-grid">
+  <section class="panel">
+    <div class="panel-head"><div><h2><svg class="i" aria-hidden="true"><use href="#i-lock"/></svg>Blocked access attempts</h2></div></div>
+    {% if blocked %}
+    <ul class="plain-list">
+      {% for e in blocked %}
+      <li><strong>{{ e.get_action_display }}</strong> <span class="muted small">{{ e.timestamp|date:"d M, h:i A" }}</span><br><span class="muted small">{{ e.actor_label|default:"unknown" }}{% if e.target %} &middot; {{ e.target }}{% endif %}{% if e.ip_address %} &middot; <span class="mono">{{ e.ip_address }}</span>{% endif %}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="empty">Nothing blocked recently.</p>{% endif %}
+  </section>
+  <section class="panel">
+    <div class="panel-head"><div><h2><svg class="i" aria-hidden="true"><use href="#i-monitor"/></svg>New device registrations</h2></div></div>
+    {% if new_devices %}
+    <ul class="plain-list">
+      {% for d in new_devices %}
+      <li><strong>{{ d.user.full_name }}</strong> <span class="muted small">{{ d.first_registered|date:"d M, h:i A" }}</span><br><span class="muted small">{{ d.name }}, {{ d.get_kind_display }}{% if d.last_ip %} &middot; <span class="mono">{{ d.last_ip }}</span>{% endif %}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="empty">No new devices in the last 7 days.</p>{% endif %}
+  </section>
+</div>
+
+<div class="report-grid">
+  <section class="panel">
+    <div class="panel-head"><div><h2><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>Expired files</h2></div></div>
+    {% if expired_files %}
+    <ul class="plain-list">
+      {% for f in expired_files %}<li><a href="{% url 'vault:edit' f.public_id %}">{{ f.title }}</a> <span class="muted small">expired {{ f.expires_at|date:"d M Y, H:i" }}</span></li>{% endfor %}
+    </ul>
+    {% else %}<p class="empty">No expired files.</p>{% endif %}
+  </section>
+  <section class="panel">
+    <div class="panel-head"><div><h2>Recently resolved</h2></div></div>
+    {% if resolved %}
+    <ul class="plain-list">
+      {% for a in resolved %}<li><a href="{% url 'security:alert' a.public_id %}">{{ a.title }}</a> <span class="muted small">by {{ a.handled_by.full_name|default:"-" }}, {{ a.handled_at|date:"d M" }}</span></li>{% endfor %}
+    </ul>
+    {% else %}<p class="empty">Nothing resolved yet.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}{% if conversation %}{% if conversation.kind == 'TEAM' %}{{ conversation.team.name }}{% else %}{{ other.full_name }}{% endif %} | {% endif %}Confidential Chat{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Confidential Chat</h1>
+    <p class="page-sub">Direct messages and team communities. Only the people in a conversation can read it.</p>
+  </div>
+</div>
+
+<div class="chat{% if conversation %} chat--open{% endif %}">
+  <aside class="panel chat-list" aria-label="Conversations">
+    <input class="sv-input" type="search" placeholder="Search people and conversations" data-filter-input="chat-index" aria-label="Search people and conversations">
+    <div class="chat-index" id="chat-index">
+      <h2 class="chat-section">Team communities</h2>
+      {% for row in sidebar.communities %}
+      <a class="chat-item{% if conversation and row.conversation and row.conversation.pk == conversation.pk %} is-active{% endif %}" href="{% url 'chat:team' row.team.pk %}" data-filter-item="{{ row.team.name|lower }}">
+        <span class="team-mark team-mark--sm" aria-hidden="true">{{ row.team.name|slice:":2"|upper }}</span>
+        <span class="chat-item-text"><strong>{{ row.team.name }}</strong><small{% if row.conversation %} data-preview="{{ row.conversation.public_id }}"{% endif %}>{{ row.preview }}</small></span>
+        {% if row.unread %}<span class="unread" aria-label="{{ row.unread }} unread">{{ row.unread }}</span>{% endif %}
+      </a>
+      {% empty %}
+      <p class="chat-empty">{% if sidebar.sees_all_teams %}No teams have been created yet.{% else %}You're not in a team yet.{% endif %}</p>
+      {% endfor %}
+
+      <h2 class="chat-section">Direct messages</h2>
+      {% for row in sidebar.direct %}
+      <a class="chat-item{% if conversation and row.conversation.pk == conversation.pk %} is-active{% endif %}" href="{% url 'chat:conversation' row.conversation.public_id %}" data-filter-item="{{ row.other.full_name|lower }} {{ row.other.email|lower }}">
+        <span class="avatar" aria-hidden="true">{{ row.other.initials }}</span>
+        <span class="chat-item-text"><strong>{{ row.other.full_name }}</strong><small data-preview="{{ row.conversation.public_id }}">{{ row.preview }}</small></span>
+        {% if row.unread %}<span class="unread" aria-label="{{ row.unread }} unread">{{ row.unread }}</span>{% endif %}
+      </a>
+      {% empty %}
+      <p class="chat-empty">No conversations yet.</p>
+      {% endfor %}
+
+      <h2 class="chat-section">Start a conversation</h2>
+      {% for person in sidebar.contacts %}
+      <form method="post" action="{% url 'chat:start' person.pk %}" class="chat-contact" data-filter-item="{{ person.full_name|lower }} {{ person.email|lower }}">
+        {% csrf_token %}
+        <button type="submit" class="chat-item">
+          <span class="avatar avatar--muted" aria-hidden="true">{{ person.initials }}</span>
+          <span class="chat-item-text"><strong>{{ person.full_name }}</strong><small>{{ person.get_role_display }}, {{ person.email }}</small></span>
+        </button>
+      </form>
+      {% empty %}
+      <p class="chat-empty">No one is available yet. You can message your teammates and administrators; ask an administrator to add you to a team.</p>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <section class="panel chat-pane" aria-label="Conversation">
+    {% if conversation %}
+    <header class="chat-head">
+      <a class="icon-btn chat-back" href="{% url 'chat:home' %}" aria-label="Back to conversations">&larr;</a>
+      {% if conversation.kind == 'TEAM' %}
+      <span class="team-mark" aria-hidden="true">{{ conversation.team.name|slice:":2"|upper }}</span>
+      <div>
+        <h2>{{ conversation.team.name }}</h2>
+        <p class="panel-sub">Team community, visible to members of this team.</p>
+      </div>
+      {% else %}
+      <span class="avatar" aria-hidden="true">{{ other.initials }}</span>
+      <div>
+        <h2>{{ other.full_name }}</h2>
+        <p class="panel-sub">{{ other.get_role_display }}{% if not other.is_active %}, deactivated{% endif %}. Private between the two of you.</p>
+      </div>
+      {% endif %}
+    </header>
+
+    <ol class="msg-list" data-chat data-conversation="{{ conversation.public_id }}" data-updates-url=""
+      {% for m in chat_messages %}
+        {% include 'chat/_message.html' %}
+      {% empty %}
+      <li class="msg-empty" data-empty>No messages yet. Say hello.</li>
+      {% endfor %}
+    </ol>
+    <div id="latest"></div>
+
+    {% if can_post %}
+    <form method="post" action="{% url 'chat:send' conversation.public_id %}" class="composer" data-composer>
+      {% csrf_token %}
+      <textarea name="body" class="sv-input" rows="2" maxlength="{{ max_length }}" placeholder="Write a message. Enter to send, Shift+Enter for a new line." aria-label="Message"></textarea>
+      <div class="composer-actions">
+        {% if can_announce %}<label class="check-row"><input type="checkbox" name="announcement"><span>Post as announcement</span></label>{% endif %}
+        <button type="submit" class="btn btn-primary"><svg class="i" aria-hidden="true"><use href="#i-send"/></svg>Send</button>
+      </div>
+      <p class="field-error" data-composer-error hidden></p>
+    </form>
+    {% else %}
+    <p class="composer-closed">You can read this conversation, but you can no longer send messages in it.</p>
+    {% endif %}
+    {% else %}
+    <div class="chat-placeholder">
+      <svg class="blocked-icon" aria-hidden="true"><use href="#i-chat"/></svg>
+      <h2>Select a conversation</h2>
+      <p class="muted">Choose a team community or a person on the left.</p>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

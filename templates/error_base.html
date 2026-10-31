@@ -1,0 +1,17 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} | SecureVision</title>
+  <link rel="stylesheet" href="{% static 'css/securevision.css' %}">
+</head>
+<body class="auth-page">
+  {% include 'partials/icons.html' %}
+  <main class="error-page">
+    <svg class="error-mark" aria-hidden="true"><use href="#i-{% block icon %}shield{% endblock %}"/></svg>
+    {% block content %}{% endblock %}
+    <a class="btn btn-primary" href="{% url 'core:home' %}">Go to dashboard</a>
+  </main>
+</body>
+</html>

@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Team attendance{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Team attendance</h1>
+    <p class="page-sub">{{ day|date:"l, d F Y" }}{% if day == today %} (today){% endif %}.{% if not can_mark %} Members of the teams you lead.{% endif %}</p>
+  </div>
+</div>
+{% include 'attendance/_tabs.html' %}
+
+{% if leads_no_team %}
+<section class="panel empty-state">
+  <h2>You don't lead a team yet</h2>
+  <p class="muted">Once an administrator makes you the leader of a team, its members' attendance appears here.</p>
+</section>
+{% else %}
+<section class="panel">
+  <form method="get" class="filters filters--4" role="search">
+    <div class="field">
+      <label class="field-label" for="att-date">Date</label>
+      <input class="sv-input" type="date" id="att-date" name="date" value="{{ day|date:'Y-m-d' }}">
+    </div>
+    <div class="field">
+      <label class="field-label" for="att-team">Team</label>
+      <select class="sv-input" id="att-team" name="team">
+        <option value="">All teams</option>
+        {% for t in teams %}<option value="{{ t.pk }}"{% if team_id == t.pk|stringformat:"s" %} selected{% endif %}>{{ t.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label" for="att-status">Status</label>
+      <select class="sv-input" id="att-status" name="status">
+        <option value="">All</option>
+        {% for value, label in status_filters %}<option value="{{ value }}"{% if status_filter == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label" for="att-q">Employee</label>
+      <input class="sv-input" type="search" id="att-q" name="q" value="{{ query }}" placeholder="Name or email">
+    </div>
+    <div class="filters-actions">
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a class="btn btn-ghost" href="{% url 'attendance:manage' %}">Today</a>
+    </div>
+  </form>
+
+  <div class="summary-chips">
+    {% for value, label, count in summary %}
+    <span class="att-badge att-badge--{{ value|lower }}">{{ label }}: {{ count }}</span>
+    {% endfor %}
+  </div>
+
+  {% if rows %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Employee</th><th>Team</th><th>Status</th><th>Check in</th><th>Check out</th><th>Worked</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td data-label="Employee"><strong>{{ row.user.full_name }}</strong><br><span class="muted small">{{ row.user.email }}</span></td>
+          <td data-label="Team">{{ row.teams|default:"-" }}</td>
+          <td data-label="Status"><span class="att-badge att-badge--{{ row.code|lower }}">{{ row.label }}</span>{% if row.record.note %}<br><span class="muted small">{{ row.record.note }}</span>{% endif %}</td>
+          <td data-label="Check in">{% if row.record.check_in_at %}{{ row.record.check_in_at|date:"h:i A" }}<br><span class="muted small">{{ row.record.check_in_device }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
+          <td data-label="Check out">{% if row.record.check_out_at %}{{ row.record.check_out_at|date:"h:i A" }}{% else %}<span class="muted">-</span>{% endif %}</td>
+          <td data-label="Worked">{{ row.record.worked_label|default:"-" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">No one matches these filters.</p>
+  {% endif %}
+</section>
+
+{% if can_mark %}
+<section class="panel panel-narrow panel-wide">
+  <div class="panel-head">
+    <div>
+      <h2>Record leave or absence</h2>
+      <p class="panel-sub">For a day the person did not check in. Recorded in the audit log.</p>
+    </div>
+  </div>
+  <form method="post" action="{% url 'attendance:mark' %}" novalidate class="form-stack">
+    {% csrf_token %}
+    {% include 'partials/field.html' with field=form.user %}
+    {% include 'partials/field.html' with field=form.date %}
+    {% include 'partials/field.html' with field=form.action %}
+    {% include 'partials/field.html' with field=form.note %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary">Save</button></div>
+  </form>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,11 @@
+<nav class="chip-tabs" aria-label="Reports">
+  <a class="chip{% if active == 'summary' %} is-active{% endif %}" href="{% url 'reports:summary' %}?days={{ days }}">Security summary</a>
+  <a class="chip{% if active == 'files' %} is-active{% endif %}" href="{% url 'reports:file_access' %}?days={{ days }}">File access</a>
+  <a class="chip" href="{% url 'attendance:report' %}">Attendance</a>
+  <a class="chip" href="{% url 'incidents:list' %}?status=all">Incident reports</a>
+</nav>
+<form method="get" class="period-row">
+  {% for value, label in periods %}
+  <button type="submit" name="days" value="{{ value }}" class="chip{% if days == value %} is-active{% endif %}">{{ label }}</button>
+  {% endfor %}
+</form>

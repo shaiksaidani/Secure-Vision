@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}{{ evidence.reference }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'incidents:list' %}">Incidents</a> / <a href="{% url 'incidents:detail' evidence.incident.public_id %}">{{ evidence.incident.reference }}</a> / {{ evidence.reference }}</p>
+<div class="page-head">
+  <div>
+    <h1>{{ evidence.title }}</h1>
+    <p class="page-sub"><span class="mono">{{ evidence.reference }}</span> &middot; {{ evidence.get_kind_display }} &middot; added {{ evidence.added_at|date:"d M Y, h:i A" }} by {{ evidence.added_by.full_name|default:"unknown" }}</p>
+  </div>
+  <div class="head-actions">
+    <form method="post" action="{% url 'incidents:evidence_verify' evidence.public_id %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-ghost">Verify integrity</button>
+    </form>
+    <a class="btn btn-primary" href="{% url 'incidents:evidence_download' evidence.public_id %}"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
+  </div>
+</div>
+
+<section class="panel">
+  <dl class="meta-list">
+    <div><dt>Original file name</dt><dd>{{ evidence.original_filename }}</dd></div>
+    <div><dt>Size</dt><dd>{{ evidence.size_bytes|filesizeformat }}</dd></div>
+    <div><dt>SHA-256 recorded when added</dt><dd class="mono hash">{{ evidence.sha256 }}</dd></div>
+    {% if evidence.description %}<div><dt>Description</dt><dd>{{ evidence.description|linebreaksbr }}</dd></div>{% endif %}
+    {% if evidence.source_ref %}<div><dt>Source</dt><dd class="mono small">{{ evidence.source_ref }}</dd></div>{% endif %}
+  </dl>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><div><h2><svg class="i" aria-hidden="true"><use href="#i-key"/></svg>Chain of custody</h2><p class="panel-sub">Who handled this evidence, when, from where, and the hash observed each time.</p></div></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>When</th><th>Action</th><th>By</th><th>Device / IP</th><th>SHA-256 observed</th></tr></thead>
+      <tbody>
+      {% for c in custody %}
+        <tr>
+          <td data-label="When">{{ c.at|date:"d M Y, h:i:s A" }}</td>
+          <td data-label="Action">{% if c.action == 'VERIFY_FAILED' %}<span class="status status--failure">{{ c.get_action_display }}</span>{% else %}{{ c.get_action_display }}{% endif %}{% if c.note %}<br><span class="muted small">{{ c.note }}</span>{% endif %}</td>
+          <td data-label="By">{{ c.actor.full_name|default:c.actor_label }}</td>
+          <td data-label="Device / IP">{{ c.device|default:"-" }}<br><span class="mono muted small">{{ c.ip_address|default:"" }}</span></td>
+          <td data-label="SHA-256 observed" class="mono small">{% if c.sha256_observed %}{% if c.sha256_observed == evidence.sha256 %}<span class="ok-text">match</span>{% else %}<span class="status status--failure">MISMATCH</span>{% endif %} {{ c.sha256_observed|truncatechars:20 }}{% else %}-{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Teams{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Teams</h1>
+    <p class="page-sub">{% if can_manage %}Every team in the organization. Create teams, choose leaders and assign members.{% else %}The teams you belong to.{% endif %}</p>
+  </div>
+  {% if can_manage %}<a class="btn btn-primary" href="{% url 'teams:create' %}">Create team</a>{% endif %}
+</div>
+
+{% if teams %}
+<div class="team-grid">
+  {% for team in teams %}
+  <a class="team-card" href="{% url 'teams:detail' team.pk %}">
+    <div class="team-card-head">
+      <span class="team-mark" aria-hidden="true">{{ team.name|slice:":2"|upper }}</span>
+      <div>
+        <h2>{{ team.name }}</h2>
+        <p class="muted small">{{ team.member_count }} member{{ team.member_count|pluralize }}</p>
+      </div>
+    </div>
+    {% if team.description %}<p class="team-card-desc">{{ team.description|truncatechars:140 }}</p>{% endif %}
+    <div class="team-card-foot">
+      <span class="small">Leader: {% if team.leader %}{{ team.leader.full_name }}{% else %}<span class="muted">Not assigned</span>{% endif %}</span>
+      {% if team.leader_id == user.pk %}<span class="tag tag-accent">You lead</span>{% elif team.pk in my_team_ids %}<span class="tag">Member</span>{% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<section class="panel empty-state">
+  {% if can_manage %}
+  <h2>No teams yet</h2>
+  <p class="muted">Create the first team, then add people to it.</p>
+  <a class="btn btn-primary" href="{% url 'teams:create' %}">Create team</a>
+  {% else %}
+  <h2>You're not on a team yet</h2>
+  <p class="muted">An administrator assigns teams. Once you're added, your team appears here.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

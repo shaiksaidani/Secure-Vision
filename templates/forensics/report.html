@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Forensic analysis{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'forensics:analyzer' %}">Forensic Analyzer</a> / {{ analysis.sample_name }}</p>
+<div class="page-head">
+  <div>
+    <h1>Forensic analysis</h1>
+    <p class="page-sub">{{ analysis.sample_name }}, analysed {{ analysis.created_at|date:"d M Y, h:i A" }} by {{ analysis.analyst.full_name|default:"unknown" }}.</p>
+  </div>
+    <div class="head-actions">
+    <span class="risk risk--{{ analysis.risk|lower }} risk--lg">Risk: {{ analysis.get_risk_display }}</span>
+    {% if 'manage_incidents' in sv_privileges %}<a class="btn btn-primary" href="{% url 'incidents:create' %}?analysis={{ analysis.public_id }}">Open incident</a>{% endif %}
+  </div>
+</div>
+{% if analysis.incidents.exists %}<p class="linked-note">Linked to {% for i in analysis.incidents.all %}<a href="{% url 'incidents:detail' i.public_id %}">{{ i.reference }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.</p>{% endif %}
+</div>
+
+<section class="panel verdicts">
+  <div class="verdict-cell">
+    <span class="metric-label">Tampered</span>
+    <span class="verdict verdict--{{ analysis.tampered|lower }}">{{ analysis.get_tampered_display }}</span>
+  </div>
+  <div class="verdict-cell">
+    <span class="metric-label">Watermark</span>
+    <span class="verdict verdict--wm-{{ analysis.watermark_status|lower }}">{{ analysis.get_watermark_status_display }}</span>
+  </div>
+  <div class="verdict-cell">
+    <span class="metric-label">Associated account</span>
+    {% if analysis.associated_user %}<strong>{{ analysis.associated_user.full_name }}</strong><span class="muted small">{{ analysis.associated_user.email }}</span>{% else %}<span class="muted">Not identified</span>{% endif %}
+  </div>
+  <div class="verdict-cell">
+    <span class="metric-label">Evidence</span>
+    <span class="verdict verdict--{{ analysis.evidence|lower }}">{{ analysis.get_evidence_display }}</span>
+  </div>
+</section>
+
+<section class="panel">
+  <p class="report-summary">{{ analysis.summary }}</p>
+  <ul class="finding-list">
+    {% for kind, text in details.findings %}
+    <li class="finding finding--{{ kind }}">{{ text }}</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<div class="report-grid">
+  <section class="panel">
+    <div class="panel-head"><div><h2>Sample</h2></div></div>
+    <dl class="meta-list">
+      <div><dt>File name</dt><dd>{{ analysis.sample_name }}</dd></div>
+      <div><dt>Size</dt><dd>{{ analysis.sample_size|filesizeformat }}</dd></div>
+      <div><dt>SHA-256</dt><dd class="mono hash">{{ analysis.sample_sha256 }}</dd></div>
+      {% if analysis.matched_file %}
+      <div><dt>Protected file</dt><dd>{{ analysis.matched_file.title }}</dd></div>
+      <div><dt>Original SHA-256</dt><dd class="mono hash">{{ analysis.matched_file.sha256 }}</dd></div>
+      {% endif %}
+      {% if details.first_access %}<div><dt>First access to the protected file</dt><dd>{{ details.first_access }}</dd></div>{% endif %}
+    </dl>
+  </section>
+
+  {% if details.watermark %}
+  <section class="panel">
+    <div class="panel-head"><div><h2>Watermark</h2></div></div>
+    <dl class="meta-list">
+      <div><dt>Watermark ID</dt><dd class="mono">{{ details.watermark.code }}</dd></div>
+      <div><dt>Copy type</dt><dd>{{ details.watermark.purpose }}</dd></div>
+      <div><dt>Issued</dt><dd>{{ details.watermark.issued }}</dd></div>
+      <div><dt>Last served</dt><dd>{{ details.watermark.last_served|default:"-" }}</dd></div>
+      <div><dt>Issued on device</dt><dd>{{ details.watermark.device|default:"-" }}{% if details.watermark.ip %} <span class="mono muted">{{ details.watermark.ip }}</span>{% endif %}</dd></div>
+      {% if details.confidence %}<div><dt>Read confidence</dt><dd>{% widthratio details.confidence 1 100 %}%</dd></div>{% endif %}
+    </dl>
+  </section>
+  {% endif %}
+</div>
+
+{% if details.timeline %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>Access history of the protected file</h2>
+      <p class="panel-sub">{% if details.accessed_by %}Opened or downloaded by: {{ details.accessed_by|join:", " }}.{% else %}No views or downloads recorded.{% endif %}</p>
+    </div>
+  </div>
+  <ol class="timeline">
+    {% for e in details.timeline %}
+    <li class="timeline-item timeline-item--{% if e.result == 'Success' %}success{% else %}denied{% endif %}">
+      <time>{{ e.when }}</time>
+      <div class="timeline-body">
+        <p class="timeline-title">{{ e.action }} <span class="muted">by {{ e.who }}</span></p>
+        <p class="timeline-meta">{% if e.device %}{{ e.device }}{% endif %}{% if e.ip %} <span class="mono">{{ e.ip }}</span>{% endif %}{% if e.result != 'Success' %} <span class="status status--denied">{{ e.result }}</span>{% endif %}</p>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+{% if analysis.associated_user %}
+<div class="report-grid">
+  <section class="panel">
+    <div class="panel-head"><div><h2><svg class="i" aria-hidden="true"><use href="#i-monitor"/></svg>Devices of {{ analysis.associated_user.full_name }}</h2></div></div>
+    {% if details.devices %}
+    <ul class="plain-list">
+      {% for d in details.devices %}
+      <li><strong>{{ d.name }}</strong> <span class="muted small">{{ d.kind }}, {{ d.status }}</span><br><span class="muted small">First {{ d.first }}, last active {{ d.last }}{% if d.ip %}, <span class="mono">{{ d.ip }}</span>{% endif %}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="empty">No registered devices.</p>{% endif %}
+  </section>
+  <section class="panel">
+    <div class="panel-head"><div><h2><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg>Suspicious events by this account</h2></div></div>
+    {% if details.suspicious %}
+    <ul class="plain-list">
+      {% for e in details.suspicious %}
+      <li><strong>{{ e.action }}</strong> <span class="muted small">{{ e.when }}</span><br><span class="muted small">{{ e.target }}{% if e.ip %}, <span class="mono">{{ e.ip }}</span>{% endif %}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="empty">No denied or failed actions recorded.</p>{% endif %}
+  </section>
+</div>
+{% endif %}
+{% endblock %}

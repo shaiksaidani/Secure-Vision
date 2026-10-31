@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}DRM Hub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>DRM Hub</h1>
+    <p class="page-sub">Upload protected content and control exactly who can open it, for how long, and how.</p>
+  </div>
+</div>
+
+<div class="hub-layout">
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2><svg class="i" aria-hidden="true"><use href="#i-upload"/></svg>Upload protected file</h2>
+        <p class="panel-sub">The original is encrypted on the server and never altered.</p>
+      </div>
+    </div>
+    <form method="post" enctype="multipart/form-data" novalidate class="form-stack">
+      {% csrf_token %}
+      {% include 'partials/form_errors.html' %}
+      <div class="field{% if form.file.errors %} has-error{% endif %}">
+        <label class="field-label" for="{{ form.file.id_for_label }}">File</label>
+        <div class="dropzone">
+          {{ form.file }}
+          <p class="field-help">Images, video, audio, PDF, text, Word, Excel and PowerPoint, up to {{ max_mb }} MB.</p>
+        </div>
+        {% for error in form.file.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+      {% include 'partials/field.html' with field=form.title %}
+      {% include 'partials/field.html' with field=form.description %}
+      {% include 'vault/_grant_fields.html' %}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Upload and protect</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>Expiring soon</h2>
+        <p class="panel-sub">Active files that expire within 7 days.</p>
+      </div>
+    </div>
+    {% if expiring %}
+    <ul class="expiry-list">
+      {% for f in expiring %}
+      <li>
+        <a href="{% url 'vault:edit' f.public_id %}">{{ f.title }}</a>
+        <span class="tag tag-warn">{{ f.expires_at|timeuntil }} left</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">Nothing expires in the next 7 days.</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2><svg class="i" aria-hidden="true"><use href="#i-folder"/></svg>All protected files</h2>
+      <p class="panel-sub">{{ files|length }} file{{ files|length|pluralize }}.</p>
+    </div>
+  </div>
+  {% if files %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>File</th><th>Who can open it</th><th>Download</th><th>Expires</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+      {% for f in files %}
+        <tr>
+          <td data-label="File"><a class="file-link" href="{% url 'vault:viewer' f.public_id %}"><svg class="i" aria-hidden="true"><use href="#i-{{ f.icon }}"/></svg>{{ f.title }}</a><br><span class="muted small">{{ f.get_category_display }}, {{ f.size_label }}, by {{ f.uploaded_by.full_name|default:"unknown" }}</span></td>
+          <td data-label="Who can open it">
+            {% for t in f.allowed_teams.all %}<span class="tag">{{ t.name }}</span> {% endfor %}
+            {% with n=f.allowed_users.all|length %}{% if n == 1 %}<span class="tag">1 person</span>{% elif n %}<span class="tag">{{ n }} people</span>{% endif %}{% endwith %}
+            {% if not f.allowed_teams.all and not f.allowed_users.all %}<span class="muted small">Admins only</span>{% endif %}
+          </td>
+          <td data-label="Download">{% if f.allow_download %}Allowed{% else %}<span class="muted">View only</span>{% endif %}</td>
+          <td data-label="Expires">{% if f.expires_at %}{{ f.expires_at|date:"d M Y, H:i" }}{% else %}<span class="muted">Never</span>{% endif %}</td>
+          <td data-label="Status">{% if f.status == 'EXPIRED' %}<span class="status status--denied">Expired</span>{% elif f.expires_soon %}<span class="status status--warn">Expiring</span>{% else %}<span class="status status--success">Active</span>{% endif %}</td>
+          <td class="cell-actions"><a class="btn btn-sm btn-ghost" href="{% url 'vault:edit' f.public_id %}">Access settings</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">No protected files yet. Upload the first one above.</p>
+  {% endif %}
+</section>
+{% endblock %}

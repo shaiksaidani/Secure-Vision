@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}{{ incident.reference }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'incidents:list' %}">Incidents</a> / {{ incident.reference }}</p>
+<div class="page-head">
+  <div>
+    <h1>{{ incident.title }}</h1>
+    <p class="page-sub"><span class="mono">{{ incident.reference }}</span> &middot; opened {{ incident.created_at|date:"d M Y, h:i A" }} by {{ incident.created_by.full_name|default:"unknown" }}{% if incident.closed_at %} &middot; closed {{ incident.closed_at|date:"d M Y" }}{% endif %}</p>
+  </div>
+  <div class="head-actions">
+    <span class="sev sev--{{ incident.severity|lower }} risk--lg">{{ incident.get_severity_display }}</span>
+    <a class="btn btn-ghost" href="{% url 'incidents:report' incident.public_id %}" target="_blank" rel="noopener">Printable report</a>
+  </div>
+</div>
+
+<section class="panel verdicts">
+  <div class="verdict-cell"><span class="metric-label">Status</span><span class="inc-status inc-status--{{ incident.status|lower }}">{{ incident.get_status_display }}</span></div>
+  <div class="verdict-cell"><span class="metric-label">Investigator</span><strong>{{ incident.assigned_to.full_name|default:"Unassigned" }}</strong></div>
+  <div class="verdict-cell"><span class="metric-label">Person involved</span>{% if incident.subject_user %}<strong>{{ incident.subject_user.full_name }}</strong><span class="muted small">{{ incident.subject_user.email }}</span>{% else %}<span class="muted">-</span>{% endif %}</div>
+  <div class="verdict-cell"><span class="metric-label">Protected file</span>{% if incident.related_file %}<a href="{% url 'vault:edit' incident.related_file.public_id %}">{{ incident.related_file.title }}</a>{% else %}<span class="muted">-</span>{% endif %}</div>
+</section>
+
+{% if incident.summary %}<section class="panel"><p class="report-summary">{{ incident.summary|linebreaksbr }}</p></section>{% endif %}
+
+<div class="report-grid">
+  <section class="panel">
+    <div class="panel-head"><div><h2><svg class="i" aria-hidden="true"><use href="#i-lock"/></svg>Evidence Vault</h2><p class="panel-sub">Encrypted, hashed and append-only. Every download and check is recorded.</p></div></div>
+    {% if evidence %}
+    <ul class="evidence-list">
+      {% for ev in evidence %}
+      <li>
+        <a href="{% url 'incidents:evidence' ev.public_id %}"><span class="mono small">{{ ev.reference }}</span> <strong>{{ ev.title }}</strong></a>
+        <span class="muted small">{{ ev.get_kind_display }} &middot; {{ ev.size_bytes|filesizeformat }} &middot; {{ ev.custody_count }} custody record{{ ev.custody_count|pluralize }}</span>
+        <span class="mono hash small">{{ ev.sha256 }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="empty">No evidence yet.</p>{% endif %}
+
+    <form method="post" action="{% url 'incidents:evidence_upload' incident.public_id %}" enctype="multipart/form-data" novalidate class="form-stack evidence-form">
+      {% csrf_token %}
+      {% include 'partials/field.html' with field=upload_form.file %}
+      {% include 'partials/field.html' with field=upload_form.title %}
+      {% include 'partials/field.html' with field=upload_form.description %}
+      <div class="form-actions"><button type="submit" class="btn btn-primary">Add evidence</button></div>
+    </form>
+    <div class="evidence-tools">
+      <form method="post" action="{% url 'incidents:evidence_snapshot' incident.public_id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-ghost btn-sm">Save activity log snapshot</button>
+      </form>
+      {% if available_analyses %}
+      <form method="post" action="{% url 'incidents:link_analysis' incident.public_id %}" class="inline-form">
+        {% csrf_token %}
+        <select class="sv-input sv-input--sm" name="analysis" aria-label="Forensic analysis">
+          {% for a in available_analyses %}<option value="{{ a.public_id }}">{{ a.sample_name }} ({{ a.get_risk_display }}, {{ a.created_at|date:"d M" }})</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn btn-ghost btn-sm">Link analysis</button>
+      </form>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><div><h2>Update</h2></div></div>
+    <form method="post" action="{% url 'incidents:update' incident.public_id %}" novalidate class="form-stack">
+      {% csrf_token %}
+      {% include 'partials/field.html' with field=update_form.status %}
+      {% include 'partials/field.html' with field=update_form.severity %}
+      {% include 'partials/field.html' with field=update_form.assigned_to %}
+      {% include 'partials/field.html' with field=update_form.note %}
+      <div class="form-actions"><button type="submit" class="btn btn-primary">Save</button></div>
+    </form>
+    {% if alerts or analyses %}
+    <div class="linked">
+      <h3 class="metric-label">Linked records</h3>
+      <ul class="plain-list">
+        {% for a in alerts %}<li><span class="sev sev--{{ a.severity|lower }}">{{ a.get_severity_display }}</span> <a href="{% url 'security:alert' a.public_id %}">{{ a.title }}</a></li>{% endfor %}
+        {% for a in analyses %}<li><span class="risk risk--{{ a.risk|lower }}">{{ a.get_risk_display }}</span> <a href="{% url 'forensics:report' a.public_id %}">Analysis of {{ a.sample_name }}</a></li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-head"><div><h2><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>Timeline</h2><p class="panel-sub">Every step of the investigation. Entries cannot be edited or removed.</p></div></div>
+  <ol class="timeline">
+    {% for e in entries %}
+    <li class="timeline-item timeline-item--{% if e.kind == 'EVIDENCE' %}success{% elif e.kind == 'STATUS' %}info{% else %}neutral{% endif %}">
+      <time datetime="{{ e.created_at|date:'c' }}">{{ e.created_at|date:"d M" }}<br><strong>{{ e.created_at|date:"h:i A" }}</strong></time>
+      <div class="timeline-body">
+        <p class="timeline-title">{{ e.get_kind_display }} <span class="muted">by {{ e.author.full_name|default:"unknown" }}</span></p>
+        <p class="timeline-meta timeline-text">{{ e.text|linebreaksbr }}</p>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endblock %}

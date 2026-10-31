@@ -1,0 +1,20 @@
+{% extends 'base_auth.html' %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<h1 class="auth-title">Sign in</h1>
+<p class="auth-sub">Use the email address you registered with.</p>
+
+<form method="post" novalidate class="form-stack">
+  {% csrf_token %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  {% include 'partials/form_errors.html' %}
+  {% include 'partials/field.html' with field=form.email %}
+  {% include 'partials/field.html' with field=form.password password=True %}
+  <div class="form-row-end">
+    <a href="{% url 'accounts:password_reset' %}">Forgot password?</a>
+  </div>
+  <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+</form>
+
+<p class="auth-switch">New to SecureVision? <a href="{% url 'accounts:signup' %}">Create an account</a></p>
+{% endblock %}

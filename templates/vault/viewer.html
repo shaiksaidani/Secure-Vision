@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}{{ file.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'vault:stored_data' %}">Stored Data</a> / {{ file.title }}</p>
+<div class="page-head">
+  <div>
+    <h1>{{ file.title }}</h1>
+    <p class="page-sub">{{ file.description|default:file.get_category_display }}</p>
+  </div>
+  <div class="head-actions">
+    {% if can_manage %}<a class="btn btn-ghost" href="{% url 'vault:edit' file.public_id %}">Access settings</a>{% endif %}
+    {% if can_download %}<a class="btn btn-primary" href="{% url 'vault:download' file.public_id %}"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Download</a>{% endif %}
+  </div>
+</div>
+
+<div class="viewer-layout">
+  <section class="viewer-stage viewer-stage--{{ file.category|lower }}">
+    {% if file.category == 'IMAGE' %}
+      <img src="{% url 'vault:content' file.public_id %}" alt="{{ file.title }}">
+    {% elif file.category == 'VIDEO' %}
+      <video src="{% url 'vault:content' file.public_id %}" controls controlslist="nodownload" preload="metadata"></video>
+    {% elif file.category == 'AUDIO' %}
+      <audio src="{% url 'vault:content' file.public_id %}" controls controlslist="nodownload"></audio>
+    {% elif file.category == 'PDF' %}
+      <iframe src="{% url 'vault:content' file.public_id %}#toolbar=0" title="{{ file.title }}"></iframe>
+    {% elif file.category == 'TEXT' %}
+      <pre class="text-view">{{ text_content }}</pre>
+    {% else %}
+      <div class="no-preview">
+        <svg class="i" aria-hidden="true"><use href="#i-file"/></svg>
+        <p>Preview isn't available for .{{ file.extension }} files.</p>
+        <p class="muted">{% if can_download %}Use Download to open it in its app.{% else %}Ask an administrator for download access.{% endif %}</p>
+      </div>
+    {% endif %}
+    {% if file.visible_watermark %}
+    <div class="watermark" aria-hidden="true">{% for i in watermark_repeat %}<span>{{ watermark_text }}</span>{% endfor %}</div>
+    {% endif %}
+  </section>
+
+  <aside class="panel viewer-meta">
+    <dl class="meta-list">
+      <div><dt>Type</dt><dd>{{ file.get_category_display }} (.{{ file.extension }})</dd></div>
+      <div><dt>Size</dt><dd>{{ file.size_label }}</dd></div>
+      <div><dt>Uploaded</dt><dd>{{ file.uploaded_at|date:"d M Y, H:i" }}{% if file.uploaded_by %} by {{ file.uploaded_by.full_name }}{% endif %}</dd></div>
+      <div><dt>Expires</dt><dd>{% if file.expires_at %}{{ file.expires_at|date:"d M Y, H:i" }}{% else %}Never{% endif %}</dd></div>
+      <div><dt>Your access</dt><dd>{% if can_download %}View and download{% else %}View only{% endif %}</dd></div>
+      {% if forensic_copy %}<div><dt>Forensic watermark</dt><dd>On. This copy is invisibly marked to you.</dd></div>{% endif %}
+      <div><dt>SHA-256</dt><dd class="mono hash">{{ file.sha256 }}</dd></div>
+    </dl>
+    <p class="field-help">Integrity verified on every open. Your access to this file is recorded.</p>
+  </aside>
+</div>
+{% endblock %}

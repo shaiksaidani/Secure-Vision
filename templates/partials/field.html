@@ -1,0 +1,32 @@
+{% comment %}
+  Renders one form field. Options: password=True adds a show/hide toggle,
+  rules=True adds the live password checklist, match="id_other" compares.
+{% endcomment %}
+<div class="field{% if field.errors %} has-error{% endif %}">
+  <label class="field-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {% if password %}
+  <div class="input-wrap">
+    {{ field }}
+    <button type="button" class="reveal" data-toggle-password="{{ field.id_for_label }}"
+            aria-label="Show password" aria-pressed="false">
+      <svg class="i" aria-hidden="true"><use href="#i-eye"/></svg>
+    </button>
+  </div>
+  {% else %}
+    {{ field }}
+  {% endif %}
+  {% if rules %}
+  <ul class="pw-rules" data-pw-rules="{{ field.id_for_label }}" aria-label="Password requirements">
+    <li data-rule="length">At least 8 characters</li>
+    <li data-rule="upper">An uppercase letter</li>
+    <li data-rule="lower">A lowercase letter</li>
+    <li data-rule="digit">A number</li>
+    <li data-rule="special">A special character</li>
+  </ul>
+  {% endif %}
+  {% if match %}
+  <p class="pw-match" data-pw-match="{{ match }}" data-pw-target="{{ field.id_for_label }}" aria-live="polite"></p>
+  {% endif %}
+  {% if field.help_text and not field.errors %}<p class="field-help">{{ field.help_text }}</p>{% endif %}
+  {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+</div>

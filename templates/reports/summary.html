@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Reports</h1>
+    <p class="page-sub">Security summary from {{ since|date:"d M Y" }} to today: {{ total_events }} recorded event{{ total_events|pluralize }}.</p>
+  </div>
+  <a class="btn btn-ghost" href="?days={{ days }}&amp;export=csv"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Export CSV</a>
+</div>
+{% include 'reports/_nav.html' with active='summary' %}
+
+<div class="report-cards">
+  {% for title, items in sections %}
+  <section class="panel">
+    <h2 class="report-card-title">{{ title }}</h2>
+    <dl class="kv">
+      {% for label, value in items %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}
+    </dl>
+  </section>
+  {% endfor %}
+  <section class="panel">
+    <h2 class="report-card-title">Security alerts raised</h2>
+    <dl class="kv">{% for label, value in alert_rows %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}</dl>
+  </section>
+  <section class="panel">
+    <h2 class="report-card-title">Incidents by status <span class="muted small">(all time)</span></h2>
+    <dl class="kv">{% for label, value in incident_rows %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}</dl>
+  </section>
+</div>
+
+<div class="report-grid">
+  <section class="panel">
+    <div class="panel-head"><div><h2>Most denied accounts</h2></div></div>
+    {% if top_denied %}
+    <ol class="rank-list">{% for row in top_denied %}<li><span>{{ row.user__full_name }} <span class="muted small">{{ row.user__email }}</span></span><strong>{{ row.n }}</strong></li>{% endfor %}</ol>
+    {% else %}<p class="empty">No denied access in this period.</p>{% endif %}
+  </section>
+  <section class="panel">
+    <div class="panel-head"><div><h2>Most accessed files</h2></div></div>
+    {% if top_files %}
+    <ol class="rank-list">{% for row in top_files %}<li><span>{{ row.title }}</span><strong>{{ row.n }}</strong></li>{% endfor %}</ol>
+    {% else %}<p class="empty">No file activity in this period.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

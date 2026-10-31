@@ -1,0 +1,81 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SecureVision{% endblock %} | SecureVision</title>
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'css/securevision.css' %}">
+</head>
+<body class="app">
+  {% include 'partials/icons.html' %}
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="topbar">
+    <button type="button" class="icon-btn nav-toggle" data-nav-toggle aria-controls="sidebar"
+            aria-expanded="false" aria-label="Open navigation">
+      <svg class="i" aria-hidden="true"><use href="#i-menu"/></svg>
+    </button>
+    <a class="brand" href="{% url 'core:dashboard' %}">
+      <svg class="brand-mark" aria-hidden="true"><use href="#i-shield"/></svg>
+      <span class="brand-name">SecureVision</span>
+    </a>
+    <div class="topbar-right">
+      <a class="icon-btn bell{% if sv_unread_notifications %} bell--unread{% endif %}" href="{% url 'notifications:list' %}" title="Notifications"
+         aria-label="Notifications{% if sv_unread_notifications %}, {{ sv_unread_notifications }} unread{% endif %}">
+        <svg class="i" aria-hidden="true"><use href="#i-bell"/></svg>
+        {% if sv_unread_notifications %}<span class="bell-count">{% if sv_unread_notifications > 99 %}99+{% else %}{{ sv_unread_notifications }}{% endif %}</span>{% endif %}
+      </a>
+      <a class="profile-chip" href="{% url 'accounts:profile' %}" title="Your profile">
+        <span class="avatar" aria-hidden="true">{{ user.initials }}</span>
+        <span class="profile-chip-text">
+          <strong>{{ user.full_name }}</strong>
+          <small>{{ user.email }}</small>
+        </span>
+      </a>
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="icon-btn" aria-label="Sign out" title="Sign out">
+          <svg class="i" aria-hidden="true"><use href="#i-logout"/></svg>
+        </button>
+      </form>
+    </div>
+  </header>
+
+  <div class="shell">
+    <nav id="sidebar" class="sidebar" aria-label="Main">
+      <div class="nav-scroll">
+        {% for group in sv_nav_groups %}
+        <p class="nav-group" id="nav-group-{{ forloop.counter }}">{{ group.label }}</p>
+        <ul class="nav-list" aria-labelledby="nav-group-{{ forloop.counter }}">
+          {% for item in group.items %}
+          <li>
+            <a href="{{ item.url }}" class="nav-link{% if item.active %} is-active{% endif %}"{% if item.active %} aria-current="page"{% endif %}>
+              <svg class="i" aria-hidden="true"><use href="#i-{{ item.icon }}"/></svg>
+              <span>{{ item.label }}</span>
+              {% if item.badge %}<span class="nav-badge">{{ item.badge }}</span>{% endif %}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endfor %}
+      </div>
+      <div class="sidebar-foot">
+        <span class="role-tag role-tag--{{ user.role|lower }}">{{ user.get_role_display }}</span>
+        <span class="sidebar-user">{{ user.username }}</span>
+      </div>
+    </nav>
+    <div class="scrim" data-nav-close hidden></div>
+
+    <main id="main" class="main">
+      {% include 'partials/messages.html' %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script src="{% static 'js/securevision.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Attendance reports{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Attendance reports</h1>
+    <p class="page-sub">{{ start|date:"d M Y" }}{% if end != start %} to {{ end|date:"d M Y" }}{% endif %}. Days after today are not counted.</p>
+  </div>
+  <a class="btn btn-ghost" href="?period={{ period }}&amp;date={{ anchor|date:'Y-m-d' }}&amp;team={{ team_id }}&amp;export=csv"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Export CSV</a>
+</div>
+{% include 'attendance/_tabs.html' %}
+
+<section class="panel">
+  <form method="get" class="filters filters--4" role="search">
+    <div class="field">
+      <label class="field-label" for="rep-period">Report</label>
+      <select class="sv-input" id="rep-period" name="period">
+        {% for value, label in periods %}<option value="{{ value }}"{% if period == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label" for="rep-date">Including date</label>
+      <input class="sv-input" type="date" id="rep-date" name="date" value="{{ anchor|date:'Y-m-d' }}">
+    </div>
+    <div class="field">
+      <label class="field-label" for="rep-team">Team</label>
+      <select class="sv-input" id="rep-team" name="team">
+        <option value="">All teams</option>
+        {% for t in teams %}<option value="{{ t.pk }}"{% if team_id == t.pk|stringformat:"s" %} selected{% endif %}>{{ t.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="filters-actions">
+      <button type="submit" class="btn btn-primary">Show report</button>
+    </div>
+  </form>
+
+  {% if rows %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Employee</th><th>Present</th><th>Late</th><th>Absent</th><th>Leave</th><th>Hours worked</th><th>Attendance</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td data-label="Employee"><strong>{{ row.user.full_name }}</strong><br><span class="muted small">{{ row.user.email }}</span></td>
+          <td data-label="Present">{{ row.present }}</td>
+          <td data-label="Late">{{ row.late }}</td>
+          <td data-label="Absent">{% if row.absent %}<span class="status status--denied">{{ row.absent }}</span>{% else %}0{% endif %}</td>
+          <td data-label="Leave">{{ row.leave }}</td>
+          <td data-label="Hours worked">{{ row.worked|default:"0h 00m" }}</td>
+          <td data-label="Attendance">{% if row.rate is None %}<span class="muted">-</span>{% else %}{{ row.rate }}%{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">No one to report on for this selection.</p>
+  {% endif %}
+</section>
+{% endblock %}

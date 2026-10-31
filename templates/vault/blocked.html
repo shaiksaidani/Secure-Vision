@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}{{ heading }}{% endblock %}
+{% block content %}
+<section class="panel blocked">
+  <svg class="blocked-icon" aria-hidden="true"><use href="#i-{% if reason == 'expired' %}clock{% elif reason == 'integrity' %}alert{% else %}lock{% endif %}"/></svg>
+  <h1>{{ heading }}</h1>
+  <p>{{ message }}</p>
+
+  {% if file and can_request %}
+    {% if last_request and last_request.status == 'PENDING' %}
+    <p class="request-state">Your request for "{{ file.title }}" was sent {{ last_request.created_at|timesince }} ago and is waiting for review.</p>
+    {% else %}
+      {% if last_request and last_request.status == 'REJECTED' %}
+      <p class="request-state">Your last request was not approved{% if last_request.decision_note %}: {{ last_request.decision_note }}{% endif %}. You can ask again.</p>
+      {% endif %}
+    <form method="post" action="{% url 'vault:request_access' file.public_id %}" class="request-form">
+      {% csrf_token %}
+      <label class="field-label" for="req-reason">Why do you need access to "{{ file.title }}"?</label>
+      <textarea class="sv-input" id="req-reason" name="reason" rows="3" maxlength="500" required placeholder="For example: I'm preparing the quarterly review with Team Beta."></textarea>
+      <button type="submit" class="btn btn-primary">Request access</button>
+    </form>
+    {% endif %}
+  {% endif %}
+
+  <a class="btn btn-ghost" href="{% url 'vault:stored_data' %}">Back to Stored Data</a>
+</section>
+{% endblock %}

@@ -1,0 +1,18 @@
+# SecureVision - Python 3.6 compatible dependency set.
+# Django 3.2 LTS is the last Django release series that supports Python 3.6.
+Django==3.2.25
+# Pinned transitive dependencies (last versions that support Python 3.6)
+asgiref==3.4.1
+sqlparse==0.4.4
+pytz==2024.1
+
+# Later, for PostgreSQL (Python 3.6 compatible):
+# psycopg2-binary==2.8.6
+# Encryption of protected files at rest (Phase 3).
+# cryptography 40.0.2 is the last release that supports Python 3.6.
+cryptography==40.0.2
+cffi==1.15.1
+pycparser==2.21
+# Invisible image watermarking (Phase 6).
+# Pillow 8.4.0 is the last release that supports Python 3.6.
+Pillow==8.4.0

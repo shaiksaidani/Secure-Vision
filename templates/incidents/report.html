@@ -1,0 +1,57 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ incident.reference }} - Incident report</title>
+  <link rel="stylesheet" href="{% static 'css/report-print.css' %}">
+</head>
+<body>
+  <header class="r-head">
+    <div>
+      <p class="r-brand">SecureVision &middot; Incident report</p>
+      <h1>{{ incident.reference }}: {{ incident.title }}</h1>
+      <p class="r-meta">Generated {% now "d M Y, h:i A" %} by {{ generated_by.full_name }} ({{ generated_by.email }}). Confidential.</p>
+    </div>
+    <button type="button" class="r-print" data-print>Print / Save as PDF</button>
+  </header>
+
+  <table class="r-facts">
+    <tr><th>Severity</th><td>{{ incident.get_severity_display }}</td><th>Status</th><td>{{ incident.get_status_display }}</td></tr>
+    <tr><th>Opened</th><td>{{ incident.created_at|date:"d M Y, h:i A" }} by {{ incident.created_by.full_name|default:"-" }}</td><th>Closed</th><td>{{ incident.closed_at|date:"d M Y, h:i A"|default:"-" }}</td></tr>
+    <tr><th>Investigator</th><td>{{ incident.assigned_to.full_name|default:"Unassigned" }}</td><th>Person involved</th><td>{% if incident.subject_user %}{{ incident.subject_user.full_name }} ({{ incident.subject_user.email }}){% else %}-{% endif %}</td></tr>
+    <tr><th>Protected file</th><td colspan="3">{% if incident.related_file %}{{ incident.related_file.title }} (SHA-256 {{ incident.related_file.sha256 }}){% else %}-{% endif %}</td></tr>
+  </table>
+
+  {% if incident.summary %}<h2>Summary</h2><p>{{ incident.summary|linebreaksbr }}</p>{% endif %}
+
+  {% if alerts or analyses %}
+  <h2>Linked records</h2>
+  <ul>
+    {% for a in alerts %}<li>Security alert: {{ a.title }} ({{ a.get_severity_display }}), first seen {{ a.first_seen|date:"d M Y, H:i" }}, {{ a.occurrences }} occurrence{{ a.occurrences|pluralize }}.</li>{% endfor %}
+    {% for a in analyses %}<li>Forensic analysis of "{{ a.sample_name }}" on {{ a.created_at|date:"d M Y, H:i" }}: risk {{ a.get_risk_display }}, tampered {{ a.get_tampered_display }}, watermark {{ a.get_watermark_status_display }}. {{ a.summary }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  <h2>Evidence</h2>
+  {% if evidence %}
+  {% for ev in evidence %}
+  <div class="r-evidence">
+    <p><strong>{{ ev.reference }}</strong> &middot; {{ ev.title }} &middot; {{ ev.get_kind_display }} &middot; {{ ev.size_bytes|filesizeformat }}</p>
+    <p class="r-hash">SHA-256 {{ ev.sha256 }}</p>
+    <table class="r-table">
+      <tr><th>When</th><th>Custody action</th><th>By</th><th>IP</th></tr>
+      {% for c in ev.custody.all %}<tr><td>{{ c.at|date:"d M Y, H:i:s" }}</td><td>{{ c.get_action_display }}</td><td>{{ c.actor_label }}</td><td>{{ c.ip_address|default:"-" }}</td></tr>{% endfor %}
+    </table>
+  </div>
+  {% endfor %}
+  {% else %}<p>No evidence recorded.</p>{% endif %}
+
+  <h2>Timeline</h2>
+  <table class="r-table">
+    <tr><th>When</th><th>Entry</th><th>By</th><th>Details</th></tr>
+    {% for e in entries %}<tr><td>{{ e.created_at|date:"d M Y, H:i" }}</td><td>{{ e.get_kind_display }}</td><td>{{ e.author.full_name|default:"-" }}</td><td>{{ e.text|linebreaksbr }}</td></tr>{% endfor %}
+  </table>
+  <script src="{% static 'js/securevision.js' %}"></script>
+</body>
+</html>

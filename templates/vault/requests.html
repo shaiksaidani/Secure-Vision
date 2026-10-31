@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Access requests{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Access requests</h1>
+    <p class="page-sub">{% if can_decide %}Approving a request grants that person view access to the file. Both decisions are recorded and the requester is notified.{% else %}Requests from members of the teams you lead. An administrator makes the decision.{% endif %}</p>
+  </div>
+</div>
+
+<section class="panel">
+  <div class="panel-head"><div><h2><svg class="i" aria-hidden="true"><use href="#i-key"/></svg>Waiting for review</h2></div></div>
+  {% if pending %}
+  <ul class="request-list">
+    {% for r in pending %}
+    <li class="request-row">
+      <div>
+        <strong>{{ r.requester.full_name }}</strong> <span class="muted small">{{ r.requester.email }}</span>
+        <p>Wants access to <a href="{% url 'vault:edit' r.file.public_id %}">{{ r.file.title }}</a> <span class="muted small">{{ r.created_at|timesince }} ago</span></p>
+        <p class="request-reason">"{{ r.reason }}"</p>
+      </div>
+      {% if can_decide %}
+      <form method="post" action="{% url 'vault:decide' r.public_id %}" class="request-decision">
+        {% csrf_token %}
+        <input class="sv-input sv-input--sm" type="text" name="note" maxlength="255" placeholder="Note (optional)" aria-label="Note">
+        <button type="submit" name="decision" value="approve" class="btn btn-sm btn-primary">Approve</button>
+        <button type="submit" name="decision" value="reject" class="btn btn-sm btn-danger-ghost">Reject</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">No requests waiting.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-head"><div><h2>Recent decisions</h2></div></div>
+  {% if decided %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Requester</th><th>File</th><th>Decision</th><th>By</th><th>When</th></tr></thead>
+      <tbody>
+      {% for r in decided %}
+        <tr>
+          <td data-label="Requester">{{ r.requester.full_name }}<br><span class="muted small">{{ r.requester.email }}</span></td>
+          <td data-label="File">{{ r.file.title }}</td>
+          <td data-label="Decision"><span class="status status--{% if r.status == 'APPROVED' %}success{% else %}denied{% endif %}">{{ r.get_status_display }}</span>{% if r.decision_note %}<br><span class="muted small">{{ r.decision_note }}</span>{% endif %}</td>
+          <td data-label="By">{{ r.decided_by.full_name|default:"-" }}</td>
+          <td data-label="When">{{ r.decided_at|date:"d M Y, H:i" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">No decisions yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

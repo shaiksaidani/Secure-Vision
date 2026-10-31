@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Incidents{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Incidents</h1>
+    <p class="page-sub">{{ active_count }} active. Open an incident from a Security Center alert, a forensic report, or here.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'incidents:create' %}"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg>New incident</a>
+</div>
+
+<section class="panel">
+  <form method="get" class="filters filters--4" role="search">
+    <div class="field">
+      <label class="field-label" for="inc-status">Status</label>
+      <select class="sv-input" id="inc-status" name="status">
+        <option value="active"{% if status == 'active' %} selected{% endif %}>Active (open, investigating, contained)</option>
+        <option value="all"{% if status == 'all' %} selected{% endif %}>All</option>
+        {% for value, label in statuses %}<option value="{{ value }}"{% if status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label" for="inc-sev">Severity</label>
+      <select class="sv-input" id="inc-sev" name="severity">
+        <option value="">All</option>
+        {% for value, label in severities %}<option value="{{ value }}"{% if severity == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label" for="inc-q">Search</label>
+      <input class="sv-input" type="search" id="inc-q" name="q" value="{{ query }}" placeholder="Reference, title or person">
+    </div>
+    <div class="filters-actions"><button type="submit" class="btn btn-primary">Filter</button></div>
+  </form>
+
+  {% if incidents %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Incident</th><th>Severity</th><th>Status</th><th>Person</th><th>Investigator</th><th>Evidence</th><th>Updated</th></tr></thead>
+      <tbody>
+      {% for i in incidents %}
+        <tr>
+          <td data-label="Incident"><a class="file-link" href="{% url 'incidents:detail' i.public_id %}"><span class="mono small">{{ i.reference }}</span>&nbsp; {{ i.title }}</a></td>
+          <td data-label="Severity"><span class="sev sev--{{ i.severity|lower }}">{{ i.get_severity_display }}</span></td>
+          <td data-label="Status"><span class="inc-status inc-status--{{ i.status|lower }}">{{ i.get_status_display }}</span></td>
+          <td data-label="Person">{{ i.subject_user.full_name|default:"-" }}</td>
+          <td data-label="Investigator">{{ i.assigned_to.full_name|default:"Unassigned" }}</td>
+          <td data-label="Evidence">{{ i.evidence_count }}</td>
+          <td data-label="Updated">{{ i.updated_at|date:"d M Y, H:i" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">No incidents match.</p>
+  {% endif %}
+</section>
+{% endblock %}

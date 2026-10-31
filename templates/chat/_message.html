@@ -1,0 +1,14 @@
+{# One message. Deleting needs: open the menu, click Delete, confirm. Hover does nothing. #}
+<li class="msg{% if m.sender_id == user.pk %} msg--mine{% endif %}{% if m.is_announcement %} msg--announcement{% endif %}{% if m.is_deleted %} msg--deleted{% endif %}" data-message-id="{{ m.pk }}">
+  <div class="msg-meta"><strong>{% if m.sender_id == user.pk %}You{% else %}{{ m.sender.full_name|default:"Former user" }}{% endif %}</strong><time datetime="{{ m.created_at|date:'c' }}">{{ m.created_at|date:"d M, h:i A" }}</time>{% if m.is_announcement %}<span class="tag tag-accent">Announcement</span>{% endif %}</div>
+  <div class="msg-body">{% if m.is_deleted %}<em>Message deleted</em>{% else %}{{ m.body }}{% endif %}</div>
+  {% if m.sender_id == user.pk and not m.is_deleted %}
+  <details class="msg-menu">
+    <summary aria-label="Message options">&middot;&middot;&middot;</summary>
+    <form method="post" action="{% url 'chat:delete' m.pk %}" data-confirm="Delete this message? Everyone in the conversation will see &quot;Message deleted&quot;.">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-danger-ghost">Delete</button>
+    </form>
+  </details>
+  {% endif %}
+</li>

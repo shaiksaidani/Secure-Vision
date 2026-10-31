@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Forensic Analyzer{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Forensic Analyzer</h1>
+    <p class="page-sub">Upload a suspicious or leaked file. SecureVision checks it against protected originals, issued copies and invisible watermarks, and reports what the evidence supports.</p>
+  </div>
+</div>
+
+<div class="hub-layout">
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Analyse a file</h2>
+        <p class="panel-sub">The sample is stored encrypted as evidence and the analysis is recorded in the audit log.</p>
+      </div>
+    </div>
+    <form method="post" enctype="multipart/form-data" novalidate class="form-stack">
+      {% csrf_token %}
+      {% include 'partials/form_errors.html' %}
+      <div class="field{% if form.sample.errors %} has-error{% endif %}">
+        <label class="field-label" for="{{ form.sample.id_for_label }}">{{ form.sample.label }}</label>
+        <div class="dropzone">
+          {{ form.sample }}
+          <p class="field-help">Any file type, up to {{ max_mb }} MB.</p>
+        </div>
+        {% for error in form.sample.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+      <div class="form-actions"><button type="submit" class="btn btn-primary">Run analysis</button></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><div><h2>What is checked</h2></div></div>
+    <ul class="check-list">
+      <li>Exact match with a protected original (SHA-256)</li>
+      <li>Exact match with a personalised copy issued to someone</li>
+      <li>Invisible watermark in images, and who it was issued to</li>
+      <li>Visual similarity to protected images (modified copies)</li>
+      <li>Access history, devices and related security events</li>
+    </ul>
+    <p class="field-help">Watermarks survive copying and cropping, but not JPEG re-compression, resizing or screenshots. Results never claim more than the evidence shows.</p>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-head"><div><h2>Recent analyses</h2></div></div>
+  {% if recent %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Sample</th><th>Linked file</th><th>Associated account</th><th>Tampered</th><th>Risk</th><th>When</th></tr></thead>
+      <tbody>
+      {% for a in recent %}
+        <tr>
+          <td data-label="Sample"><a class="file-link" href="{% url 'forensics:report' a.public_id %}"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>{{ a.sample_name }}</a></td>
+          <td data-label="Linked file">{{ a.matched_file.title|default:"-" }}</td>
+          <td data-label="Associated account">{% if a.associated_user %}{{ a.associated_user.full_name }}{% else %}<span class="muted">Not identified</span>{% endif %}</td>
+          <td data-label="Tampered"><span class="verdict verdict--{{ a.tampered|lower }}">{{ a.get_tampered_display }}</span></td>
+          <td data-label="Risk"><span class="risk risk--{{ a.risk|lower }}">{{ a.get_risk_display }}</span></td>
+          <td data-label="When">{{ a.created_at|date:"d M Y, H:i" }}<br><span class="muted small">by {{ a.analyst.full_name|default:"unknown" }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">No analyses yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

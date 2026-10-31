@@ -1,0 +1,32 @@
+{# Who may open the file. Shared by the upload and edit forms. #}
+<div class="field">
+  <span class="field-label">{{ form.allowed_teams.label }}</span>
+  {% if form.allowed_teams.field.queryset.exists %}
+  <div class="pick-list pick-list--short">
+    {% for option in form.allowed_teams %}
+    <label class="pick">{{ option.tag }}<span>{{ option.choice_label }}</span></label>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="field-help">No teams exist yet. <a href="{% url 'teams:create' %}">Create a team</a> first, or grant specific people below.</p>
+  {% endif %}
+  {% for error in form.allowed_teams.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+</div>
+
+<div class="field">
+  <span class="field-label">{{ form.allowed_users.label }}</span>
+  <input class="sv-input" type="search" placeholder="Filter people" data-filter-input="people-picker" aria-label="Filter people">
+  <div class="pick-list" id="people-picker">
+    {% for option in form.allowed_users %}
+    <label class="pick" data-filter-item="{{ option.choice_label|lower }}">{{ option.tag }}<span>{{ option.choice_label }}</span></label>
+    {% endfor %}
+  </div>
+  <p class="field-help">With no teams and no people selected, only administrators can open the file.</p>
+  {% for error in form.allowed_users.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+</div>
+
+{% include 'partials/field.html' with field=form.expires_at %}
+
+<label class="check-row">{{ form.allow_download }}<span>{{ form.allow_download.label }}</span></label>
+<label class="check-row">{{ form.visible_watermark }}<span>{{ form.visible_watermark.label }}</span></label>
+<label class="check-row">{{ form.forensic_watermark }}<span>{{ form.forensic_watermark.label }}</span></label>

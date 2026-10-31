@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}File access report{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>File access report</h1>
+    <p class="page-sub">Views, downloads and denied attempts for every protected file in the selected period.</p>
+  </div>
+  <a class="btn btn-ghost" href="?days={{ days }}&amp;export=csv"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Export CSV</a>
+</div>
+{% include 'reports/_nav.html' with active='files' %}
+
+<section class="panel">
+  {% if rows %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>File</th><th>Status</th><th>Views</th><th>Downloads</th><th>Denied</th><th>Opened by</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr>
+          <td data-label="File"><a href="{% url 'vault:edit' r.file.public_id %}">{{ r.file.title }}</a></td>
+          <td data-label="Status">{{ r.file.get_status_display }}</td>
+          <td data-label="Views">{{ r.views }}</td>
+          <td data-label="Downloads">{{ r.downloads }}</td>
+          <td data-label="Denied">{% if r.denied %}<span class="status status--denied">{{ r.denied }}</span>{% else %}0{% endif %}</td>
+          <td data-label="Opened by" class="small">{{ r.people|join:", "|default:"-" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="empty">No protected files yet.</p>{% endif %}
+</section>
+{% endblock %}

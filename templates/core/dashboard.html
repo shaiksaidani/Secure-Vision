@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Welcome back, {{ user.get_short_name }}</h1>
+    <p class="page-sub">Signed in as {{ user.email }} ({{ user.get_role_display }})</p>
+  </div>
+</div>
+
+
+<section class="panel metrics metrics--5" aria-label="Workspace overview">
+  <div class="metric">
+    <span class="metric-label">Today's attendance</span>
+    {% if org_view %}
+    <span class="metric-value">{{ attendance_today.checked_in }}<small class="metric-of"> / {{ workspace.active_users }}</small></span>
+    <a class="metric-link" href="{% url 'attendance:manage' %}">{% if attendance_today.late %}{{ attendance_today.late }} late, view team attendance{% else %}View team attendance{% endif %}</a>
+    {% else %}
+    <span class="metric-value metric-value--text"><span class="att-badge att-badge--{{ attendance_today.code|lower }}">{{ attendance_today.label }}</span></span>
+    <a class="metric-link" href="{% url 'attendance:mine' %}">{% if attendance_today.record.check_in_at %}In at {{ attendance_today.record.check_in_at|date:"h:i A" }}{% else %}Check in now{% endif %}</a>
+    {% endif %}
+  </div>
+  <div class="metric">
+    <span class="metric-label">{% if org_view %}Protected files{% else %}Files available to you{% endif %}</span>
+    <span class="metric-value">{{ workspace.files }}</span>
+    {% if 'view_authorized_files' in sv_privileges %}<a class="metric-link" href="{% url 'vault:stored_data' %}">Open Stored Data</a>{% endif %}
+  </div>
+  <div class="metric{% if workspace.expiring %} metric--alert{% endif %}">
+    <span class="metric-label">Expiring within 7 days</span>
+    <span class="metric-value">{{ workspace.expiring }}</span>
+    {% if workspace.expiring and 'upload_protected_files' in sv_privileges %}<a class="metric-link" href="{% url 'vault:hub' %}">Review in DRM Hub</a>{% else %}<span class="metric-note">{% if workspace.expiring %}Open them before they expire{% else %}Nothing expiring{% endif %}</span>{% endif %}
+  </div>
+  <div class="metric">
+    <span class="metric-label">{% if org_view %}Teams{% else %}Your teams{% endif %}</span>
+    <span class="metric-value">{{ workspace.teams }}</span>
+    <a class="metric-link" href="{% url 'teams:list' %}">View teams</a>
+  </div>
+  <div class="metric">
+    {% if org_view %}
+    <span class="metric-label">Active users</span>
+    <span class="metric-value">{{ workspace.active_users }}</span>
+    <a class="metric-link" href="{% url 'accounts:user_list' %}">Manage users and roles</a>
+    {% else %}
+    <span class="metric-label">Role</span>
+    <span class="metric-value metric-value--text">{{ user.get_role_display }}</span>
+    <span class="metric-note">Member since {{ user.date_joined|date:"d M Y" }}</span>
+    {% endif %}
+  </div>
+</section>
+{% if security_overview %}
+<section class="panel metrics" aria-label="Security and investigations">
+  <div class="metric{% if security_overview.serious_alerts %} metric--alert{% endif %}">
+    <span class="metric-label">Open security alerts</span>
+    <span class="metric-value">{{ security_overview.open_alerts }}</span>
+    <a class="metric-link" href="{% url 'security:center' %}">{% if security_overview.serious_alerts %}{{ security_overview.serious_alerts }} critical or high{% else %}Open Security Center{% endif %}</a>
+  </div>
+  <div class="metric">
+    <span class="metric-label">Active incidents</span>
+    <span class="metric-value">{{ security_overview.active_incidents }}</span>
+    <a class="metric-link" href="{% url 'incidents:list' %}">{% if security_overview.my_incidents %}{{ security_overview.my_incidents }} assigned to you{% else %}View incidents{% endif %}</a>
+  </div>
+  <div class="metric{% if security_overview.pending_requests %} metric--alert{% endif %}">
+    <span class="metric-label">Pending access requests</span>
+    <span class="metric-value">{{ security_overview.pending_requests }}</span>
+    <a class="metric-link" href="{% url 'vault:requests' %}">{% if security_overview.pending_requests %}Review requests{% else %}Nothing waiting{% endif %}</a>
+  </div>
+  <div class="metric">
+    <span class="metric-label">Unread notifications</span>
+    <span class="metric-value">{{ sv_unread_notifications }}</span>
+    <a class="metric-link" href="{% url 'notifications:list' %}">Open notifications</a>
+  </div>
+</section>
+{% endif %}
+<section class="panel metrics" aria-label="Account security">
+  <div class="metric">
+    <span class="metric-label">Your active sessions</span>
+    <span class="metric-value">{{ active_session_count }}</span>
+    <a class="metric-link" href="{% url 'accounts:profile' %}">Manage sessions</a>
+  </div>
+  <div class="metric{% if failed_signins_week %} metric--alert{% endif %}">
+    <span class="metric-label">Failed sign-ins, last 7 days</span>
+    <span class="metric-value">{{ failed_signins_week }}</span>
+    {% if failed_signins_week %}<span class="metric-note">Review your sign-in history</span>{% else %}<span class="metric-note">None recorded</span>{% endif %}
+  </div>
+  <div class="metric">
+    <span class="metric-label">Previous sign-in</span>
+    {% if previous_login %}
+    <span class="metric-value metric-value--text">{{ previous_login.timestamp|date:"d M, H:i" }}</span>
+    <span class="metric-note mono">{{ previous_login.ip_address|default:"" }}</span>
+    {% else %}
+    <span class="metric-value metric-value--text">First sign-in</span>
+    <span class="metric-note">Nothing earlier on record</span>
+    {% endif %}
+  </div>
+  <div class="metric">
+    <span class="metric-label">Member since</span>
+    <span class="metric-value metric-value--text">{{ user.date_joined|date:"d M Y" }}</span>
+    <span class="metric-note">{{ user.username }}</span>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>{% if org_view %}Organization activity{% else %}Your recent activity{% endif %}</h2>
+      <p class="panel-sub">Recorded in the SecureVision audit log.</p>
+    </div>
+  </div>
+  {% if recent_events %}
+  <ol class="timeline">
+    {% for e in recent_events %}
+    <li class="timeline-item timeline-item--{{ e.result|lower }}">
+      <time datetime="{{ e.timestamp|date:'c' }}">{{ e.timestamp|date:"d M" }}<br><strong>{{ e.timestamp|date:"h:i A" }}</strong></time>
+      <div class="timeline-body">
+        <p class="timeline-title">{{ e.get_action_display }}{% if org_view and e.actor_label %} <span class="muted">by {{ e.actor_label }}</span>{% endif %}</p>
+        <p class="timeline-meta">{% if e.ip_address %}<span class="mono">{{ e.ip_address }}</span>{% endif %}{% if e.result != 'SUCCESS' %} <span class="status status--{{ e.result|lower }}">{{ e.get_result_display }}</span>{% endif %}</p>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="empty">No activity recorded yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

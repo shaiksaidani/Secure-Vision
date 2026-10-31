@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}{% if team %}Edit team{% else %}Create team{% endif %}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'teams:list' %}">Teams</a>{% if team %} / <a href="{% url 'teams:detail' team.pk %}">{{ team_name }}</a> / Edit{% else %} / New team{% endif %}</p>
+<div class="page-head">
+  <div>
+    <h1>{% if team %}Edit {{ team_name }}{% else %}Create a team{% endif %}</h1>
+    <p class="page-sub">The leader must have the Team Leader or Admin role. They're added to the team automatically.</p>
+  </div>
+</div>
+<section class="panel panel-narrow">
+  <form method="post" novalidate class="form-stack">
+    {% csrf_token %}
+    {% include 'partials/form_errors.html' %}
+    {% include 'partials/field.html' with field=form.name %}
+    {% include 'partials/field.html' with field=form.description %}
+    {% include 'partials/field.html' with field=form.leader %}
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="{% if team %}{% url 'teams:detail' team.pk %}{% else %}{% url 'teams:list' %}{% endif %}">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if team %}Save changes{% else %}Create team{% endif %}</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

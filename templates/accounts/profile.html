@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Profile</h1>
+    <p class="page-sub">Your account details, privileges, password and signed-in sessions.</p>
+  </div>
+</div>
+
+<section class="panel identity">
+  <span class="avatar avatar-lg" aria-hidden="true">{{ profile_user.initials }}</span>
+  <dl class="detail-grid">
+    <div><dt>Name</dt><dd>{{ profile_user.full_name }}</dd></div>
+    <div><dt>Username</dt><dd>{{ profile_user.username }}</dd></div>
+    <div><dt>Email</dt><dd>{{ profile_user.email }}</dd></div>
+    <div><dt>Role</dt><dd><span class="role-tag role-tag--{{ profile_user.role|lower }}">{{ profile_user.get_role_display }}</span></dd></div>
+    <div><dt>Team</dt><dd>{% for team in profile_user.teams.all %}<a href="{% url 'teams:detail' team.pk %}">{{ team.name }}</a>{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted">Not assigned yet</span>{% endfor %}</dd></div>
+    <div><dt>Member since</dt><dd>{{ profile_user.date_joined|date:"d M Y" }}</dd></div>
+  </dl>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>Your privileges</h2>
+      <p class="panel-sub">{{ role_description }}</p>
+    </div>
+  </div>
+  <ul class="privilege-list">
+    {% for row in privilege_rows %}
+    <li>
+      <span>{{ row.label }}</span>
+      {% if row.live %}<span class="tag tag-ok">Available</span>{% else %}<span class="tag">Phase {{ row.phase }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2><svg class="i" aria-hidden="true"><use href="#i-lock"/></svg>Password</h2>
+      <p class="panel-sub">Changing it signs out your other sessions.</p>
+    </div>
+    <a class="btn btn-ghost" href="{% url 'accounts:password_change' %}">Change password</a>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2><svg class="i" aria-hidden="true"><use href="#i-monitor"/></svg>Active sessions</h2>
+      <p class="panel-sub">Browsers currently signed in to your account.</p>
+    </div>
+    {% if sessions|length > 1 %}
+    <form method="post" action="{% url 'accounts:logout_other_sessions' %}"
+          data-confirm="Sign out of every other session on your account?">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger-ghost">Sign out other sessions</button>
+    </form>
+    {% endif %}
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Device</th><th>IP address</th><th>Signed in</th><th>Last active</th><th><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+      {% for s in sessions %}
+        <tr>
+          <td data-label="Device">{{ s.device_label }}{% if s.session_key == current_session_key %} <span class="tag tag-accent">This session</span>{% endif %}</td>
+          <td data-label="IP address" class="mono">{{ s.ip_address|default:"&mdash;" }}</td>
+          <td data-label="Signed in">{{ s.created_at|date:"d M Y, H:i" }}</td>
+          <td data-label="Last active">{{ s.last_seen|timesince }} ago</td>
+          <td class="cell-actions">
+            {% if s.session_key != current_session_key %}
+            <form method="post" action="{% url 'accounts:revoke_session' s.pk %}"
+                  data-confirm="End the session on {{ s.device_label }}?">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-danger-ghost">End session</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel" id="devices">
+  <div class="panel-head">
+    <div>
+      <h2><svg class="i" aria-hidden="true"><use href="#i-monitor"/></svg>Registered devices</h2>
+      <p class="panel-sub">{{ active_device_count }} of {{ device_limit }} allowed. A new browser, a private window or cleared cookies count as a new device. Removing a device signs it out and stops it signing in again.</p>
+    </div>
+  </div>
+  {% if devices %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Device</th><th>Type</th><th>First registered</th><th>Last active</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+      {% for d in devices %}
+        <tr>
+          <td data-label="Device">{{ d.name }}{% if d.pk == current_device_id %} <span class="tag tag-accent">This device</span>{% endif %}<br><span class="muted small mono">{{ d.last_ip|default:"" }}</span></td>
+          <td data-label="Type">{{ d.get_kind_display }}</td>
+          <td data-label="First registered">{{ d.first_registered|date:"d M Y, H:i" }}</td>
+          <td data-label="Last active">{{ d.last_active|timesince }} ago</td>
+          <td data-label="Status">{% if d.status == 'ACTIVE' %}<span class="status status--success">Active</span>{% else %}<span class="status status--denied">Removed</span>{% endif %}</td>
+          <td class="cell-actions">
+            {% if d.status == 'ACTIVE' and d.pk != current_device_id %}
+            <form method="post" action="{% url 'accounts:revoke_device' d.public_id %}"
+                  data-confirm="Remove {{ d.name }}? It will be signed out and won't be able to sign in again.">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-danger-ghost">Remove</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">No devices registered yet.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>Active sessions</h2>
+      <p class="panel-sub">Recent sign-ins, failed attempts and security changes on your account.</p>
+    </div>
+  </div>
+  {% if history %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Event</th><th>Result</th><th>When</th><th>IP address</th></tr></thead>
+      <tbody>
+      {% for e in history %}
+        <tr>
+          <td data-label="Event">{{ e.get_action_display }}</td>
+          <td data-label="Result"><span class="status status--{{ e.result|lower }}">{{ e.get_result_display }}</span></td>
+          <td data-label="When">{{ e.timestamp|date:"d M Y, H:i" }}</td>
+          <td data-label="IP address" class="mono">{{ e.ip_address|default:"&mdash;" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">No sign-in events recorded yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

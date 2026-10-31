@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}{{ team.name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'teams:list' %}">Teams</a> / {{ team.name }}</p>
+<div class="page-head">
+  <div>
+    <h1>{{ team.name }}</h1>
+    <p class="page-sub">{{ team.description|default:"No description." }}</p>
+  </div>
+  {% if can_manage %}<a class="btn btn-ghost" href="{% url 'teams:edit' team.pk %}">Edit team</a>{% endif %}
+</div>
+
+<section class="panel metrics metrics--3" aria-label="Team summary">
+  <div class="metric">
+    <span class="metric-label">Leader</span>
+    <span class="metric-value metric-value--text">{% if team.leader %}{{ team.leader.full_name }}{% else %}Not assigned{% endif %}</span>
+    {% if team.leader %}<span class="metric-note">{{ team.leader.email }}</span>{% endif %}
+  </div>
+  <div class="metric">
+    <span class="metric-label">Members</span>
+    <span class="metric-value">{{ memberships|length }}</span>
+  </div>
+  <div class="metric">
+    <span class="metric-label">Created</span>
+    <span class="metric-value metric-value--text">{{ team.created_at|date:"d M Y" }}</span>
+    {% if team.created_by %}<span class="metric-note">by {{ team.created_by.full_name }}</span>{% endif %}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2><svg class="i" aria-hidden="true"><use href="#i-team"/></svg>Members</h2>
+      <p class="panel-sub">Everyone in this team.</p>
+    </div>
+  </div>
+  {% if memberships %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Name</th><th>Role</th><th>Joined team</th>{% if can_manage %}<th><span class="sr-only">Actions</span></th>{% endif %}</tr></thead>
+      <tbody>
+      {% for m in memberships %}
+        <tr>
+          <td data-label="Name"><strong>{{ m.user.full_name }}</strong>{% if m.user.pk == team.leader_id %} <span class="tag tag-accent">Leader</span>{% endif %}{% if m.user.pk == user.pk %} <span class="tag">You</span>{% endif %}<br><span class="muted small">{{ m.user.email }}</span></td>
+          <td data-label="Role"><span class="role-tag role-tag--{{ m.user.role|lower }}">{{ m.user.get_role_display }}</span>{% if not m.user.is_active %} <span class="status status--denied">Deactivated</span>{% endif %}</td>
+          <td data-label="Joined team">{{ m.joined_at|date:"d M Y" }}</td>
+          {% if can_manage %}
+          <td class="cell-actions">
+            <form method="post" action="{% url 'teams:remove_member' team.pk m.user.pk %}"
+                  data-confirm="Remove {{ m.user.full_name }} from {{ team.name }}?">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-danger-ghost">Remove</button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">No members yet.</p>
+  {% endif %}
+</section>
+
+{% if can_manage %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Add members</h2>
+      <p class="panel-sub">Active users who aren't in this team yet.</p>
+    </div>
+  </div>
+  {% if add_form.fields.users.queryset.exists %}
+  <form method="post" action="{% url 'teams:add_members' team.pk %}" class="form-stack">
+    {% csrf_token %}
+    <input class="sv-input" type="search" placeholder="Filter by name or email" data-filter-input="member-picker" aria-label="Filter people">
+    <div class="pick-list" id="member-picker">
+      {% for option in add_form.users %}
+      <label class="pick" data-filter-item="{{ option.choice_label|lower }}">{{ option.tag }}<span>{{ option.choice_label }}</span></label>
+      {% endfor %}
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Add selected</button>
+    </div>
+  </form>
+  {% else %}
+  <p class="empty">Every active user is already in this team.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

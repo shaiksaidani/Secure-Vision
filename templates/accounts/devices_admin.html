@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Devices{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Devices</h1>
+    <p class="page-sub">Every browser registered to an account, and the limit on how many each account may use.</p>
+  </div>
+</div>
+
+<div class="hub-layout">
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2><svg class="i" aria-hidden="true"><use href="#i-monitor"/></svg>All devices</h2>
+        <p class="panel-sub">{{ active_count }} active.</p>
+      </div>
+    </div>
+    <form method="get" class="search-row" role="search">
+      <input class="sv-input" type="search" name="q" value="{{ query }}" placeholder="Person or device" aria-label="Search devices">
+      <select class="sv-input sv-input--sm" name="status" aria-label="Status">
+        <option value="">All</option>
+        {% for value, label in status_choices %}<option value="{{ value }}"{% if status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn btn-ghost">Filter</button>
+    </form>
+    {% if devices %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Person</th><th>Device</th><th>Registered</th><th>Last active</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        {% for d in devices %}
+          <tr>
+            <td data-label="Person"><strong>{{ d.user.full_name }}</strong><br><span class="muted small">{{ d.user.email }}</span></td>
+            <td data-label="Device">{{ d.name }}{% if d.pk == current_device_id %} <span class="tag tag-accent">This device</span>{% endif %}<br><span class="muted small">{{ d.get_kind_display }}{% if d.last_ip %}, <span class="mono">{{ d.last_ip }}</span>{% endif %}</span></td>
+            <td data-label="Registered">{{ d.first_registered|date:"d M Y, H:i" }}</td>
+            <td data-label="Last active">{{ d.last_active|timesince }} ago</td>
+            <td data-label="Status">{% if d.status == 'ACTIVE' %}<span class="status status--success">Active</span>{% else %}<span class="status status--denied">Removed</span>{% if d.revoked_by %}<br><span class="muted small">by {{ d.revoked_by.full_name }}</span>{% endif %}{% endif %}</td>
+            <td class="cell-actions">
+              {% if d.status == 'ACTIVE' and d.pk != current_device_id %}
+              <form method="post" action="{% url 'accounts:admin_revoke_device' d.public_id %}"
+                    data-confirm="Remove {{ d.name }} from {{ d.user.full_name }}'s account? It will be signed out immediately.">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-danger-ghost">Remove</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="empty">No devices match.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>Device policy</h2>
+        <p class="panel-sub">{% if policy.updated_by %}Last changed by {{ policy.updated_by.full_name }}, {{ policy.updated_at|date:"d M Y" }}.{% else %}Default policy.{% endif %}</p>
+      </div>
+    </div>
+    <form method="post" novalidate class="form-stack">
+      {% csrf_token %}
+      {% include 'partials/form_errors.html' %}
+      {% include 'partials/field.html' with field=form.max_devices_per_user %}
+      <div class="form-actions"><button type="submit" class="btn btn-primary">Save policy</button></div>
+    </form>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}New incident{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'incidents:list' %}">Incidents</a> / New</p>
+<div class="page-head">
+  <div>
+    <h1>Open an incident</h1>
+    <p class="page-sub">{% if alert %}From the security alert "{{ alert.title }}". It will be linked and acknowledged.{% elif analysis %}From the forensic analysis of "{{ analysis.sample_name }}". Its sample will be added to the Evidence Vault.{% else %}Record what happened and who is investigating.{% endif %}</p>
+  </div>
+</div>
+<section class="panel panel-narrow panel-wide">
+  <form method="post" novalidate class="form-stack">
+    {% csrf_token %}
+    {% if alert %}<input type="hidden" name="alert" value="{{ alert.public_id }}">{% endif %}
+    {% if analysis %}<input type="hidden" name="analysis" value="{{ analysis.public_id }}">{% endif %}
+    {% include 'partials/form_errors.html' %}
+    {% include 'partials/field.html' with field=form.title %}
+    {% include 'partials/field.html' with field=form.summary %}
+    {% include 'partials/field.html' with field=form.severity %}
+    {% include 'partials/field.html' with field=form.assigned_to %}
+    {% include 'partials/field.html' with field=form.subject_user %}
+    {% include 'partials/field.html' with field=form.related_file %}
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="{% url 'incidents:list' %}">Cancel</a>
+      <button type="submit" class="btn btn-primary">Open incident</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,36 @@
+{# Decorative circuit traces converging into a shield. Hidden from screen readers. #}
+<svg class="circuit-art" viewBox="0 0 520 520" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="core-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ff7a1a" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="260" cy="260" r="170" fill="url(#core-glow)"/>
+  <g class="traces" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 90h110l40 40v60l38 38"/>
+    <path d="M20 170h70l30 30h66"/>
+    <path d="M60 300h90l32-32"/>
+    <path d="M40 420h120l60-60v-40"/>
+    <path d="M500 70H390l-40 40v80l-38 38"/>
+    <path d="M500 200h-70l-30 30h-64"/>
+    <path d="M470 330h-100l-34-34"/>
+    <path d="M500 450H360l-60-60v-50"/>
+    <path d="M260 20v90"/>
+    <path d="M200 20v50l30 30v30"/>
+    <path d="M320 20v50l-30 30v30"/>
+    <path d="M260 500v-86"/>
+  </g>
+  <g class="nodes">
+    <circle cx="130" cy="90" r="3.5"/><circle cx="90" cy="170" r="3.5"/><circle cx="150" cy="300" r="3.5"/>
+    <circle cx="160" cy="420" r="3.5"/><circle cx="390" cy="70" r="3.5"/><circle cx="430" cy="200" r="3.5"/>
+    <circle cx="370" cy="330" r="3.5"/><circle cx="360" cy="450" r="3.5"/><circle cx="260" cy="20" r="3.5"/>
+    <circle cx="200" cy="20" r="3.5"/><circle cx="320" cy="20" r="3.5"/><circle cx="260" cy="500" r="3.5"/>
+  </g>
+  <g transform="translate(260 262)">
+    <polygon class="hex-outer" points="0,-112 97,-56 97,56 0,112 -97,56 -97,-56"/>
+    <polygon class="hex-inner" points="0,-86 74.5,-43 74.5,43 0,86 -74.5,43 -74.5,-43"/>
+    <path class="shield" d="M0-50-38-36v26c0 28 16 46 38 54 22-8 38-26 38-54v-26Z"/>
+    <path class="shield-check" d="m-16 0 11 11 22-24"/>
+  </g>
+</svg>

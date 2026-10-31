@@ -1,0 +1,5 @@
+<nav class="chip-tabs" aria-label="Attendance sections">
+  {% for tab in tabs %}
+  <a class="chip{% if tab.active %} is-active{% endif %}" href="{% url tab.url_name %}"{% if tab.active %} aria-current="page"{% endif %}>{{ tab.label }}</a>
+  {% endfor %}
+</nav>

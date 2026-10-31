@@ -1,0 +1,36 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Sign in{% endblock %} | SecureVision</title>
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'css/securevision.css' %}">
+</head>
+<body class="auth-page">
+  {% include 'partials/icons.html' %}
+  <div class="auth">
+    <aside class="auth-visual">
+      <div class="auth-brand">
+        <svg class="brand-mark" aria-hidden="true"><use href="#i-shield"/></svg>
+        <div>
+          <p class="auth-wordmark">SecureVision</p>
+          <p class="auth-tagline">AI Powered Image &amp; Data Protection Platform</p>
+        </div>
+      </div>
+      {% include 'partials/circuit_art.html' %}
+      <p class="auth-statement">Every file, message and sign-in is tied to a verified identity and kept on record.</p>
+    </aside>
+    <main class="auth-main">
+      <div class="auth-card">
+        {% include 'partials/messages.html' %}
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+  <script src="{% static 'js/securevision.js' %}"></script>
+</body>
+</html>

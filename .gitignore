@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+venv/
+.venv/
+.env
+.dev_secret_key
+db.sqlite3
+staticfiles/
+media/
+protected_storage/
+.vscode/
+.dev_file_key
